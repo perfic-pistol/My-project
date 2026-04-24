@@ -5,10 +5,10 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 1
+  - enabled: 0
     path: Assets/MirrorIntegration/Multiplayer_MainMenu.unity
     guid: 493483edc5f46ec44a0e27744a0f3b66
-  - enabled: 1
+  - enabled: 0
     path: Assets/MirrorIntegration/Multiplayer_BlankScene.unity
     guid: f3408ed7538fb4d44847e0dc0d894fa9
   - enabled: 0
@@ -20,5 +20,17 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/Cowsins/Demo/Showroom.unity
     guid: c65d245ca63349e40af89661df799c04
+  - enabled: 1
+    path: Assets/01. Scenes/Opening.unity
+    guid: b40700b8b810ae0448fb2cf0ac82adaf
+  - enabled: 1
+    path: Assets/01. Scenes/Map1.unity
+    guid: 46dee5f2797dc174f9e68426ad99681c
+  - enabled: 1
+    path: Assets/01. Scenes/Map2.unity
+    guid: 110c549bfc6a83d40b28b8ab9e471ad5
+  - enabled: 1
+    path: Assets/01. Scenes/Map3.unity
+    guid: 1629b64046494dc49a847ce40eaa77d8
   m_configObjects:
     com.unity.input.settings: {fileID: 11400000, guid: 33f591010f343104f853b337a1fca25a, type: 2}

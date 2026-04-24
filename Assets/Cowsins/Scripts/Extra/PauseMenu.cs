@@ -1,9 +1,13 @@
-using System;
+﻿using System;
 using UnityEngine;
 using System.Collections;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace cowsins
 {
@@ -16,6 +20,9 @@ namespace cowsins
         [SerializeField] private CanvasGroup menu;
         [SerializeField] private float fadeSpeed;
         private Coroutine fadeCoroutine;
+
+        [Header("Scene Settings")]
+        [SerializeField] private string mainMenuSceneName = "Ingame Scenes/Opening";
 
         private IPlayerControlProvider playerControlProvider; // IPlayerControlProvider is implemented in PlayerControl.cs
         private IPlayerStatsProvider playerStatsProvider; // IPlayerStatsProvider is implemented in PlayerStats.cs
@@ -75,7 +82,7 @@ namespace cowsins
             menu.gameObject.SetActive(true);
             while (menu.alpha < 1)
             {
-                menu.alpha += Time.deltaTime * fadeSpeed;
+                menu.alpha += Time.unscaledDeltaTime * fadeSpeed;
                 yield return null;
             }
             menu.alpha = 1;
@@ -86,7 +93,7 @@ namespace cowsins
             playerUI.SetActive(true);
             while (menu.alpha > 0)
             {
-                menu.alpha -= Time.deltaTime * fadeSpeed;
+                menu.alpha -= Time.unscaledDeltaTime * fadeSpeed;
                 yield return null;
             }
             menu.alpha = 0;
@@ -101,6 +108,7 @@ namespace cowsins
 
             if (isPaused)
             {
+                Time.timeScale = 0f; // 시간 정지
                 playerControlProvider.LoseControl();
                 fadeCoroutine = StartCoroutine(HandlePause());
                 OnPause?.Invoke();
@@ -114,15 +122,27 @@ namespace cowsins
         public void UnPause()
         {
             isPaused = false;
+            Time.timeScale = 1f; // 시간 다시 흐름
             playerControlProvider.CheckIfCanGrantControl();
             if (fadeCoroutine != null) StopCoroutine(fadeCoroutine);
             fadeCoroutine = StartCoroutine(HandleUnpause());
             OnUnPause?.Invoke();
         }
 
+        public void GoToMainMenu()
+        {
+            isPaused = false;
+            Time.timeScale = 1f;
+            SceneManager.LoadScene(mainMenuSceneName);
+        }
+
         public void QuitGame()
         {
+#if UNITY_EDITOR
+            EditorApplication.isPlaying = false;
+#else
             Application.Quit();
+#endif
         }
     }
 }
