@@ -39,6 +39,10 @@ public class MonsterNoise : MonoBehaviour
     [Tooltip("플레이어 손 등 카메라 자식 오브젝트들")]
     public GameObject[] playerHandObjects;
 
+    [Header("Shader Settings")]
+    [Tooltip("NoiseShader1을 여기에 직접 드래그해서 연결하세요")]
+    public Shader noiseShaderRef;
+
     Camera cam;
     Material noiseMat;
     Shader noiseShader;
@@ -72,7 +76,8 @@ public class MonsterNoise : MonoBehaviour
 
     void InitMaterial()
     {
-        noiseShader = Shader.Find("Custom/NoiseShader1");
+        // 인스펙터에서 직접 연결된 셰이더 우선 사용
+        noiseShader = noiseShaderRef != null ? noiseShaderRef : Shader.Find("Custom/NoiseShader1");
 
         // 셰이더를 못 찾으면 중단
         if (noiseShader == null)

@@ -1401,6 +1401,7 @@ MonoBehaviour:
   - {fileID: 787510792}
   playerHandObjects:
   - {fileID: 1517699449}
+  noiseShaderRef: {fileID: 4800000, guid: 9432b5e5c49ddfb4aa649c491d9661e7, type: 3}
 --- !u!82 &141343975
 AudioSource:
   m_ObjectHideFlags: 0
