@@ -1,5 +1,5 @@
-/// <summary>
-/// This script belongs to cowsins™ as a part of the cowsins´ FPS Engine. All rights reserved. 
+ï»¿/// <summary>
+/// This script belongs to cowsins?as a part of the cowsins?FPS Engine. All rights reserved. 
 /// </summary>
 using UnityEngine;
 using UnityEngine.Events;
@@ -74,6 +74,11 @@ namespace cowsins
         public void RemoveOnDieListener(Action listener) => OnDie -= listener;
 
         #endregion
+
+        public void TakeDamage(float attackDamage)
+        {
+            Damage(attackDamage, false);
+        }
 
         private void Start()
         {
@@ -268,4 +273,5 @@ namespace cowsins
             this.maxShield = maxShield;
         }
     }
+
 }

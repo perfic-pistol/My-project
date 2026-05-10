@@ -1,5 +1,5 @@
-/// <summary>
-/// This script belongs to cowsins™ as a part of the cowsins´ FPS Engine. All rights reserved. 
+ï»¿/// <summary>
+/// This script belongs to cowsins?as a part of the cowsins?FPS Engine. All rights reserved. 
 /// </summary>
 using UnityEngine;
 #if SAVE_LOAD_ADD_ON
@@ -60,6 +60,11 @@ namespace cowsins
         {
             if (lootInside != null) Instantiate(lootInside, transform.position, Quaternion.identity);
             Destroy(this.gameObject);
+        }
+
+        public void TakeDamage(float attackDamage)
+        {
+            Damage(attackDamage, false);
         }
 
 #if SAVE_LOAD_ADD_ON

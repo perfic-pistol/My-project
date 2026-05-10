@@ -2,7 +2,7 @@
 %TAG !u! tag:unity3d.com,2011:
 --- !u!78 &1
 TagManager:
-  serializedVersion: 2
+  serializedVersion: 3
   tags:
   - Enemy
   - FirePoint
@@ -10,6 +10,8 @@ TagManager:
   - Weapons
   - Ramp
   - BodyShot
+  - Wall
+  - Monster
   layers:
   - Default
   - TransparentFX
@@ -30,8 +32,8 @@ TagManager:
   - Effects
   - Player
   - Ladder
-  - 
-  - 
+  - Wall
+  - Furniture
   - 
   - 
   - 
@@ -47,3 +49,6 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
+  m_RenderingLayers:
+  - Default
+  m_MigratedRenderPipelines: []
