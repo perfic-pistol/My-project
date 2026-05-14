@@ -66,6 +66,11 @@ public class MonsterDetection : MonoBehaviour
     // 시야 기준점 (eyeTransform 이 없으면 이 오브젝트의 Transform 사용)
     private Transform eyePoint;
 
+    // [개선] 플레이어 Transform 캐시
+    // ForceDetectPlayer() 에서 FindWithTag("Player") 는 씬 전체를 순회해서 느림
+    // 한 번 찾은 뒤 여기에 저장해두고 재사용 -> 피격마다 씬 탐색하는 부하 제거
+    private Transform cachedPlayerTransform;
+
     // 성능 최적화: Physics.OverlapSphere 결과를 저장할 배열을 미리 할당
     // new Collider[1]: 플레이어는 한 명이므로 크기 1 로 충분
     // 매 프레임 new 로 배열 생성 시 GC(가비지 컬렉터) 부하 발생 -> 미리 할당으로 방지
@@ -97,6 +102,19 @@ public class MonsterDetection : MonoBehaviour
             enabled = false;
             return;
         }
+
+        // [개선] Start 에서 플레이어를 미리 한 번 찾아 캐시
+        // 이후 ForceDetectPlayer() 에서는 캐시를 재사용해서 FindWithTag 반복 호출 방지
+        // 플레이어가 씬에 있을 때 Start 가 실행되므로 대부분 여기서 성공적으로 캐시됨
+        GameObject playerObj = GameObject.FindWithTag("Player");
+        if (playerObj != null)
+        {
+            cachedPlayerTransform = playerObj.transform;
+        }
+        else
+        {
+            Debug.LogWarning($"[{gameObject.name}] MonsterDetection: 씬에서 Player 태그 오브젝트를 찾지 못했습니다. Player 태그가 설정되어 있는지 확인하세요.");
+        }
     }
 
     private void Update()
@@ -108,8 +126,6 @@ public class MonsterDetection : MonoBehaviour
 
         // 감지 체크 실행
         RunDetection();
-
-        // 활동 구역 이탈 체크 및 이동 제어는 MonsterBrain 이 담당
     }
 
     // =====================================================================
@@ -171,8 +187,6 @@ public class MonsterDetection : MonoBehaviour
         }
     }
 
-    // 감지 방법 1: 원형 범위 감지
-    // Physics.OverlapSphereNonAlloc: 구 안의 콜라이더를 배열에 저장 (NonAlloc = GC 없음)
     // 돌진 활성화 시 전용 감지: 벽 관통, chargeDetectionRadius 반경, 무조건 감지
     private bool TryDetectByChargeRadius(out Transform playerTransform)
     {
@@ -192,6 +206,8 @@ public class MonsterDetection : MonoBehaviour
         return true;
     }
 
+    // 감지 방법 1: 원형 범위 감지
+    // Physics.OverlapSphereNonAlloc: 구 안의 콜라이더를 배열에 저장 (NonAlloc = GC 없음)
     private bool TryDetectByRadius(out Transform playerTransform)
     {
         playerTransform = null;
@@ -257,7 +273,6 @@ public class MonsterDetection : MonoBehaviour
     // Physics.Raycast: 직선을 쏴서 장애물이 있는지 확인
     private bool HasLineOfSight(Transform target)
     {
-        // 눈 위치에서 플레이어 위치까지의 방향 벡터
         Vector3 origin = eyePoint.position;
         Vector3 direction = (target.position - origin).normalized;
         float distance = Vector3.Distance(origin, target.position);
@@ -284,7 +299,6 @@ public class MonsterDetection : MonoBehaviour
     // =====================================================================
 
     // 플레이어를 감지했을 때 호출
-    // 이동/순찰 제어는 MonsterBrain 이 담당 -> 여기서는 상태값과 애니메이터만 갱신
     private void OnPlayerDetected(Transform player)
     {
         IsDetectingPlayer = true;
@@ -296,7 +310,6 @@ public class MonsterDetection : MonoBehaviour
         if (!HasDetectedPlayer)
         {
             Debug.Log($"[{gameObject.name}] 플레이어 최초 감지!");
-            // 최초 감지 플래그 (한 번 true 가 되면 절대 false 로 돌아오지 않음)
             HasDetectedPlayer = true;
         }
 
@@ -304,7 +317,6 @@ public class MonsterDetection : MonoBehaviour
     }
 
     // 플레이어를 현재 감지하지 못할 때 호출 (시야 밖, 벽 뒤)
-    // 이동 제어는 MonsterBrain 이 담당
     private void OnPlayerLost()
     {
         IsDetectingPlayer = false;
@@ -315,7 +327,7 @@ public class MonsterDetection : MonoBehaviour
     }
 
     // =====================================================================
-    // 애니메이터 업데이트
+    // 공개 함수 (MonsterBrain 에서 호출)
     // =====================================================================
 
     // 감지 기억 초기화 - MonsterBrain 의 Search 종료 시 호출
@@ -330,6 +342,38 @@ public class MonsterDetection : MonoBehaviour
         Debug.Log($"[{gameObject.name}] 감지 기억 초기화. 순찰 복귀");
     }
 
+    // 피격 시 MonsterBrain 에서 호출
+    // 감지 범위 밖에 있어도 플레이어를 강제로 감지한 것으로 처리
+    public void ForceDetectPlayer()
+    {
+        // [개선] 캐시된 Transform 을 먼저 확인 -> FindWithTag 반복 호출 방지
+        // cachedPlayerTransform 이 없을 때만 FindWithTag 로 씬 탐색 (최초 1회 or 씬 재로드 시)
+        if (cachedPlayerTransform == null)
+        {
+            GameObject playerObj = GameObject.FindWithTag("Player");
+            if (playerObj == null)
+            {
+                Debug.LogWarning($"[{gameObject.name}] ForceDetectPlayer: Player 태그 오브젝트를 찾을 수 없습니다.");
+                return;
+            }
+            cachedPlayerTransform = playerObj.transform;
+        }
+
+        // 감지 상태를 강제로 활성화
+        IsDetectingPlayer = true;
+        HasDetectedPlayer = true;
+        DetectedPlayer = cachedPlayerTransform;
+        LastKnownPlayerPosition = cachedPlayerTransform.position;
+
+        UpdateAnimator(isAlert: true, isDetecting: true);
+
+        Debug.Log($"[{gameObject.name}] 피격으로 플레이어 위치 강제 감지: {LastKnownPlayerPosition}");
+    }
+
+    // =====================================================================
+    // 애니메이터 업데이트
+    // =====================================================================
+
     private void UpdateAnimator(bool isAlert, bool isDetecting)
     {
         if (monsterAnimator == null) return;
@@ -343,7 +387,6 @@ public class MonsterDetection : MonoBehaviour
 
     // =====================================================================
     // 에디터 기즈모: 씬 뷰에서 감지 범위 시각화
-    // detectionMode 에 따라 활성화된 감지 방식의 범위만 표시
     // =====================================================================
 
     private void OnDrawGizmosSelected()
@@ -369,11 +412,9 @@ public class MonsterDetection : MonoBehaviour
                       || data.detectionMode == MonsterData.DetectionMode.RadiusAndSight;
         if (showSight)
         {
-            // 시야 반경 원
             Gizmos.color = new Color(0.3f, 0.8f, 1f, 0.1f);
             Gizmos.DrawSphere(eye, data.sightRange);
 
-            // 시야각 왼쪽/오른쪽 경계선
             Gizmos.color = new Color(0.3f, 0.8f, 1f, 0.9f);
             float halfAngle = data.sightAngle * 0.5f;
             Vector3 leftDir = Quaternion.Euler(0f, -halfAngle, 0f) * forward;
@@ -381,7 +422,6 @@ public class MonsterDetection : MonoBehaviour
             Gizmos.DrawRay(eye, leftDir * data.sightRange);
             Gizmos.DrawRay(eye, rightDir * data.sightRange);
 
-            // 시야각 호(arc) 표시: 경계선 끝을 잇는 원호
             DrawArcGizmo(eye, forward, data.sightRange, data.sightAngle, new Color(0.3f, 0.8f, 1f, 0.5f));
         }
 
@@ -400,7 +440,6 @@ public class MonsterDetection : MonoBehaviour
         }
     }
 
-    // 원 기즈모 그리기 헬퍼
     private void DrawCircleGizmo(Vector3 center, float radius)
     {
         int segments = 32;
@@ -415,8 +454,6 @@ public class MonsterDetection : MonoBehaviour
         }
     }
 
-    // 시야각 호(arc) 기즈모 그리기 헬퍼
-    // 시야각의 끝 부분을 반원 형태로 연결해서 시야 범위를 더 직관적으로 표시
     private void DrawArcGizmo(Vector3 center, Vector3 forward, float radius, float totalAngle, Color color)
     {
         Gizmos.color = color;
@@ -429,7 +466,6 @@ public class MonsterDetection : MonoBehaviour
             float a1 = (-halfAngle + angleStep * i) * Mathf.Deg2Rad;
             float a2 = (-halfAngle + angleStep * (i + 1)) * Mathf.Deg2Rad;
 
-            // forward 방향을 기준으로 각도 회전 계산
             Vector3 p1 = center + Quaternion.Euler(0f, a1 * Mathf.Rad2Deg, 0f) * forward * radius;
             Vector3 p2 = center + Quaternion.Euler(0f, a2 * Mathf.Rad2Deg, 0f) * forward * radius;
             Gizmos.DrawLine(p1, p2);
