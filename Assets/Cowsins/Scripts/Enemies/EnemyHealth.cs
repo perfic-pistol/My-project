@@ -75,6 +75,11 @@ namespace cowsins
         public Image ShieldSlider => shieldBar;
 
 
+        public void TakeDamage(float attackDamage)
+        {
+            Damage(attackDamage, false);
+        }
+
         public virtual void Start()
         {
             // Status initial settings
@@ -353,6 +358,10 @@ namespace cowsins
                                "could not be found. Did you move, rename or delete EnemyStatusSlider.prefab?");
             }
         }
+
+
     }
+
+
 #endif
 }

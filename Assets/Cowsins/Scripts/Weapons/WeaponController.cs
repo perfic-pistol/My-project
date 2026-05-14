@@ -1,4 +1,4 @@
-/// <summary>
+﻿/// <summary>
 /// This script belongs to cowsins™ as a part of the cowsins´ FPS Engine. All rights reserved. 
 /// </summary>
 using UnityEngine;
@@ -206,7 +206,7 @@ namespace cowsins
 
             if (Physics.Raycast(MainCamera.transform.position, MainCamera.transform.forward, out hit, Weapon.bulletRange))
             {
-                if(hit.collider.CompareTag("Enemy") || hit.collider.CompareTag("Critical"))
+                if(hit.collider.CompareTag("Monster") || hit.collider.CompareTag("Critical"))
                 {
                     Events.OnEnemySpotted?.Invoke(true);
                     return;
