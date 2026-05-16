@@ -1,5 +1,6 @@
-using cowsins;
+﻿using cowsins;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public class FootstepsBehaviour
 {
@@ -91,10 +92,25 @@ public class FootstepsBehaviour
     {
         AudioClip[] sounds = playerSettings.footstepSounds.GetSoundsForLayer(layer);
 
-        if (sounds.Length > 0)
+        if (sounds.Length == 0) return;
         {
             int randomIndex = UnityEngine.Random.Range(0, sounds.Length);
-            audioSource.PlayOneShot(sounds[randomIndex], playerSettings.footstepVolume);
+            AudioClip clip = sounds[randomIndex];
+
+            // 원본: audioSource.PlayOneShot(clip) → audio.clip 이 null 이라 BossHearing 감지 불가
+            // 수정: clip 을 직접 할당하고 Play() 로 재생 → audio.clip.name 으로 클립 이름 읽기 가능
+
+
+            // 달리기와 걷기를 볼륨으로 구분
+            // BossHearing 에서 볼륨 기준으로 달리기(중간 소리) / 걷기(작은 소리)를 분류함
+            // 현재 속도가 runSpeed 의 80% 이상이면 달리기로 판단
+            bool isRunning = playerMovement.CurrentSpeed >= playerSettings.runSpeed * 0.8f;
+            float footVolume = isRunning ? 1.0f : 0.6f;
+
+            // PlayOneShot 유지 - 소리가 겹쳐도 끊기지 않음
+            // BossHearing 은 audioSource.volume 으로 달리기(1.0) / 걷기(0.6) 를 구분함
+            audioSource.volume = footVolume;
+            audioSource.PlayOneShot(clip, footVolume);
         }
     }
 

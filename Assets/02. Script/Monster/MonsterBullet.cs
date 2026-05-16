@@ -73,28 +73,32 @@ public class MonsterBullet : MonoBehaviour
         // 몬스터 자신의 콜라이더와 충돌하면 무시 (자기 자신에게 피해 방지)
         if (other.CompareTag("Monster")) return;
 
-        // 플레이어에게 맞은 경우 PlayerStats 를 직접 호출
-        // IDamageable 만 호출하면 대시 무적 등 PlayerStats 내부 보호 로직이 무시될 수 있음
-        // -> 플레이어는 PlayerStats.Damage() 로 별도 처리
-        if (other.CompareTag("Player"))
+        // 플레이어 판정
+        // 충돌한 콜라이더 본인 또는 부모 오브젝트에서 PlayerStats 를 탐색
+        // 이유: 플레이어가 몸통/머리 등 콜라이더를 여러 개 가질 때
+        //       자식 콜라이더에는 Player 태그가 없고 루트에만 있는 경우가 많음
+        //       GetComponentInParent 는 자기 자신 포함 부모 방향으로 올라가며 탐색하므로
+        //       어떤 콜라이더에 맞아도 PlayerStats 를 정확히 찾을 수 있음
+        PlayerStats playerStats = other.GetComponentInParent<PlayerStats>();
+        if (playerStats != null)
         {
-            if (other.TryGetComponent<PlayerStats>(out PlayerStats playerStats))
-            {
-                playerStats.TakeDamage(damage);
-                Debug.Log($"[총알] 플레이어에게 {damage} 데미지!");
-            }
-
+            // hasHit 을 먼저 true 로 설정
+            // 같은 프레임에 다른 콜라이더가 OnTriggerEnter 를 또 발생시켜도 데미지 중복 방지
             hasHit = true;
+            playerStats.TakeDamage(damage);
+            Debug.Log($"[총알] 플레이어에게 {damage} 데미지!");
             ReturnOrDestroy();
             return;
         }
 
-        // 플레이어 이외의 IDamageable (다른 몬스터, 오브젝트 등) 에 맞은 경우
-        if (other.TryGetComponent<IDamageable>(out IDamageable damageable))
+        // 플레이어 이외의 IDamageable (다른 몬스터, 오브젝트 등)
+        // 마찬가지로 부모까지 탐색
+        IDamageable damageable = other.GetComponentInParent<IDamageable>();
+        if (damageable != null)
         {
+            hasHit = true;
             damageable.TakeDamage(damage);
             Debug.Log($"[총알] {other.name} 에게 {damage} 데미지!");
-            hasHit = true;
             ReturnOrDestroy();
             return;
         }

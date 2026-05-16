@@ -38,7 +38,6 @@ public class MonsterBrain : MonoBehaviour
     public Transform firePoint;
 
     // 총구 이펙트 컴포넌트 (firePoint 오브젝트에 붙어있는 MonsterMuzzleEffect)
-    // Awake 에서 자동으로 찾아서 캐싱하므로 인스펙터에서 따로 연결하지 않아도 됨
     private MonsterMuzzleEffect muzzleEffect;
 
     [Tooltip("총알 프리팹. 비워두면 Raycast 즉시 판정 방식 사용")]
@@ -46,6 +45,10 @@ public class MonsterBrain : MonoBehaviour
 
     [Tooltip("공격 판정 레이어 (Player 레이어 포함)")]
     public LayerMask attackableLayer;
+
+    // 사격 사운드용 AudioSource (Awake 에서 자동 추가)
+    // 사격 사운드 클립과 볼륨은 MonsterData 에서 설정
+    private AudioSource fireAudioSource;
 
     [Header("가구 엄폐 설정")]
     [Tooltip("엄폐 가능한 가구 레이어")]
@@ -58,6 +61,11 @@ public class MonsterBrain : MonoBehaviour
     [Tooltip("엄폐 중 플레이어가 이 거리 밖으로 나가면 엄폐 해제 후 Alert 로 전환 (미터).\n"
            + "attackRange 와 동일하거나 약간 크게 설정하면 자연스러움")]
     public float coverBreakDistance = 22f;
+
+    [Tooltip("엄폐물이 여전히 유효한지 확인하는 주기 (초).\n"
+           + "너무 짧으면 Raycast 부하 증가, 너무 길면 반응이 느려짐. 0.3~0.5 권장")]
+    [Range(0.1f, 1f)]
+    public float coverCheckInterval = 0.3f;
 
     [Header("애니메이터")]
     [Tooltip("Animator 컴포넌트 연결 (없어도 동작)")]
@@ -146,6 +154,16 @@ public class MonsterBrain : MonoBehaviour
     private Vector3 coverPosition;
     private bool isAtCover = false;
 
+    // 엄폐물 유효성 체크 타이머
+    private float coverCheckTimer = 0f;
+
+    // 재엄폐 시도 후 일정 시간 동안 유효성 체크를 막는 쿨타임
+    // 가구가 애매한 위치에 있을 때 앉았다 일어났다를 반복하는 것을 방지
+    private float coverRelocateCooldown = 0f;
+
+    // 재엄폐 쿨타임 길이 (초): 재이동 시작 후 이 시간 동안은 유효성 체크 안 함
+    private const float COVER_RELOCATE_COOLDOWN = 3f;
+
     private float searchWaitTimer = 0f;
 
     [Header("수색 설정")]
@@ -186,10 +204,18 @@ public class MonsterBrain : MonoBehaviour
         detection = GetComponent<MonsterDetection>();
         navAgent = GetComponent<NavMeshAgent>();
 
-        // firePoint 오브젝트에 MonsterMuzzleEffect 가 붙어있으면 자동으로 캐싱
-        // firePoint 가 없거나 MonsterMuzzleEffect 가 없으면 null 로 유지 (이펙트 없이 동작)
         if (firePoint != null)
             muzzleEffect = firePoint.GetComponent<MonsterMuzzleEffect>();
+
+        // 사격 사운드용 AudioSource 자동 추가
+        // PlayOneShot 으로 재생해서 점사 중 소리가 겹쳐도 자연스럽게 들림
+        fireAudioSource = GetComponent<AudioSource>();
+        if (fireAudioSource == null)
+            fireAudioSource = gameObject.AddComponent<AudioSource>();
+
+        fireAudioSource.playOnAwake = false;
+        fireAudioSource.loop = false;
+        fireAudioSource.spatialBlend = 1f; // 3D 사운드 (거리에 따라 크기 변함)
     }
 
     private void Start()
@@ -273,27 +299,26 @@ public class MonsterBrain : MonoBehaviour
         CurrentState = BrainState.Alert;
         patrol.StopPatrol();
         patrol.SetChaseSpeed();
-
-        // 엄폐 중이었다면 일어서기
-        SetAnimatorCrouch(false);
         SetAnimatorAlert(true);
 
         // IsAiming 이 true 상태로 Alert 에 진입하는 경우 (사격 직후 쿨타임 대기)
-        // -> suppressMovingAnim 을 유지해서 쿨타임 중 조준 자세가 깨지지 않게 함
-        // IsAiming 이 false 인 경우 (추격, 수색 등) -> suppressMovingAnim 해제해서 이동 가능하게 함
+        // suppressMovingAnim 을 유지해서 쿨타임 중 조준 자세가 깨지지 않게 함
         bool currentlyAiming = monsterAnimator != null && monsterAnimator.GetBool(AnimIsAiming);
         suppressMovingAnim = currentlyAiming;
 
-        // IsAiming 은 여기서 끄지 않음 (의도된 동작)
-        // 쿨타임 중 UpdateAlert 에서 navAgent.isStopped = true 로 멈추고
-        // 쿨타임이 끝나면 DecideCombatBehavior -> EnterCombatAim 으로 다시 조준 시작
-        // IsAiming 이 false 가 되는 시점:
-        //   - EnterPatrol: 순찰 복귀
-        //   - EnterSearch: 플레이어 놓침
-        //   - SetAnimatorCrouch(false): 엄폐 해제
-        //   - EnterCombatCharge: 돌진 시작
-
         Debug.Log($"[{gameObject.name}] 상태: 경계/추적");
+    }
+
+    // 엄폐를 완전히 해제하고 Alert 로 전환할 때만 사용
+    // IsCrouching, IsAiming 을 모두 끄고 일반 경계 상태로 전환
+    private void EnterAlertFromCover()
+    {
+        if (monsterAnimator != null)
+        {
+            monsterAnimator.SetBool(AnimIsCrouching, false);
+            monsterAnimator.SetBool(AnimIsAiming, false);
+        }
+        EnterAlert();
     }
 
     private void EnterCombatAim(Transform target)
@@ -325,16 +350,24 @@ public class MonsterBrain : MonoBehaviour
         coverPosition = coverPos;
         isAtCover = false;
 
+        coverCheckTimer = 0f;
+
         patrol.StopPatrol();
         navAgent.isStopped = false;
         navAgent.SetDestination(coverPosition);
 
-        // 엄폐 위치로 이동 중에는 달리기 애니메이션이 나와야 하므로 차단 해제
-        // 엄폐 위치 도착 후 앉을 때 다시 suppressMovingAnim = true 로 설정
         suppressMovingAnim = false;
 
-        // 이동 중에는 서 있는 상태
-        SetAnimatorCrouch(false);
+        if (monsterAnimator != null)
+        {
+            // IsCrouching=false 로 일어서기
+            monsterAnimator.SetBool(AnimIsCrouching, false);
+            // IsMoving=true 를 강제로 설정
+            // NavMeshAgent 가 실제로 움직이기까지 한 프레임 딜레이가 있어서
+            // 그 사이에 IsCrouching=false + IsMoving=false 조건으로
+            // Crouch_Idle -> Alert_Idle 로 빠지는 것을 방지
+            monsterAnimator.SetBool(AnimIsMoving, true);
+        }
 
         Debug.Log($"[{gameObject.name}] 상태: 엄폐 이동 시작");
     }
@@ -411,6 +444,11 @@ public class MonsterBrain : MonoBehaviour
             }
 
             // 공격 범위 밖 -> 추격 이동
+            // suppressMovingAnim 해제해서 달리기 애니메이션이 나오게 함
+            // 사격 쿨타임 대기 중 suppressMovingAnim=true 로 막혀있던 것을 풀어줌
+            suppressMovingAnim = false;
+            if (monsterAnimator != null)
+                monsterAnimator.SetBool(AnimIsAiming, false);
             navAgent.isStopped = false;
             navAgent.SetDestination(player.position);
         }
@@ -522,7 +560,9 @@ public class MonsterBrain : MonoBehaviour
     //   1단계: 엄폐 위치로 이동
     //   2단계: 도착하면 IsCrouching = true (앉기 애니메이션 전환)
     //   3단계: 플레이어 방향으로 회전 -> 조준 -> CrouchAttack 트리거 -> 사격
-    //   4단계: 쿨다운 후 3단계 반복 (다른 전투 상태로 절대 자동 전환 안 됨)
+    //   4단계: 사격 후 엄폐물 유효성 체크
+    //          -> 엄폐물이 여전히 가로막고 있으면 계속 엄폐 사격 반복
+    //          -> 엄폐물이 사라졌으면 새 엄폐 위치 탐색 후 재이동 (없으면 Alert 전환)
     //   5단계: 플레이어가 coverBreakDistance 밖으로 나가면 일어서서 Alert 로만 전환
     // =====================================================================
     private void UpdateCombatCover()
@@ -545,10 +585,7 @@ public class MonsterBrain : MonoBehaviour
                 navAgent.isStopped = true;
                 aimStartTime = Time.time;
 
-                // 앉은 상태에서는 이동 애니메이션이 나오면 안 되므로 차단
                 suppressMovingAnim = true;
-
-                // IsCrouching 을 true 로 바꾸면 Animator 가 앉기 애니메이션으로 전환
                 SetAnimatorCrouch(true);
                 Debug.Log($"[{gameObject.name}] 엄폐 도착. 앉아서 사격 시작");
             }
@@ -557,8 +594,6 @@ public class MonsterBrain : MonoBehaviour
         }
 
         // ── 5단계: 엄폐 해제 조건 확인 ───────────────────────────────────
-        // 플레이어가 coverBreakDistance 밖으로 멀어지면 엄폐 해제 후 Alert 로 전환
-        // 이 조건 이외에는 절대 엄폐 상태를 스스로 해제하지 않음
         float distToPlayer = GetNavMeshPathDistance(combatTarget.position);
         if (distToPlayer > coverBreakDistance)
         {
@@ -567,33 +602,81 @@ public class MonsterBrain : MonoBehaviour
             return;
         }
 
+        // ── 4단계: 엄폐물 유효성 체크 ────────────────────────────────────
+        // coverCheckInterval 마다 한 번만 Raycast 해서 매 프레임 부하 방지
+        // 재엄폐 시도 직후 COVER_RELOCATE_COOLDOWN 초 동안은 체크하지 않음
+        // -> 가구가 애매한 위치에 있을 때 앉았다 일어났다 반복 방지
+        if (coverRelocateCooldown > 0f)
+        {
+            coverRelocateCooldown -= Time.deltaTime;
+        }
+        else
+        {
+            coverCheckTimer += Time.deltaTime;
+            if (coverCheckTimer >= coverCheckInterval)
+            {
+                coverCheckTimer = 0f;
+
+                if (!IsCoverStillValid())
+                {
+                    Debug.Log($"[{gameObject.name}] 엄폐물 소실 감지. 새 엄폐 위치 탐색");
+
+                    Vector3 newCoverPos;
+                    if (TryFindCoverPosition(combatTarget, out newCoverPos))
+                    {
+                        Debug.Log($"[{gameObject.name}] 새 엄폐 위치 발견. 재이동");
+                        // 재이동 후 쿨타임 설정 -> 이 시간 동안 유효성 체크 안 함
+                        coverRelocateCooldown = COVER_RELOCATE_COOLDOWN;
+                        EnterCombatCover(combatTarget, newCoverPos);
+                    }
+                    else
+                    {
+                        Debug.Log($"[{gameObject.name}] 새 엄폐 위치 없음. Alert 전환");
+                        ExitCoverToAlert();
+                    }
+                    return;
+                }
+            }
+        }
+
         // ── 2~4단계: 앉은 채로 반복 사격 ─────────────────────────────────
 
-        // 플레이어 방향으로 부드럽게 회전 (앉은 채로)
         RotateTowardsTarget(combatTarget);
 
-        // 조준 시간 대기
         float elapsed = Time.time - aimStartTime;
         if (elapsed < data.aimDuration) return;
 
-        // 공격 쿨다운 대기
         if (Time.time - lastAttackTime < data.attackCooldown) return;
 
-        // 앉아서 공격 (CrouchAttack 트리거 -> 앉아서 쏘는 애니메이션)
         ExecuteCrouchAttack(combatTarget);
         lastAttackTime = Time.time;
-
-        // 조준 타이머 리셋 -> 엄폐 상태 유지하며 다음 사격 준비
-        // EnterAlert 를 호출하지 않으므로 엄폐 상태가 계속 유지됨
         aimStartTime = Time.time;
     }
 
-    // 엄폐 해제 후 Alert 전환 헬퍼
-    // 앉기 애니메이션 해제 + Alert 진입을 한 곳에서 처리
+    // 현재 엄폐 위치에서 플레이어 사이에 가구가 여전히 막고 있는지 확인
+    // 몬스터 눈 위치 -> 플레이어 방향으로 Raycast 를 쏴서 furnitureLayer 에 맞으면 유효
+    // 맞지 않으면 엄폐물이 없거나 옆으로 빠진 것으로 판단
+    private bool IsCoverStillValid()
+    {
+        // eyePoint 역할로 transform 위치에서 1미터 위를 사용 (MonsterBrain 에는 eyePoint 없음)
+        Vector3 eyePos = transform.position + Vector3.up;
+
+        Vector3 targetCenter = combatTarget.position;
+        Collider targetCol = combatTarget.GetComponent<Collider>();
+        if (targetCol != null)
+            targetCenter = targetCol.bounds.center;
+
+        Vector3 dirToPlayer = (targetCenter - eyePos).normalized;
+        float dist = Vector3.Distance(eyePos, targetCenter);
+
+        // furnitureLayer 에 맞는 것이 있으면 엄폐물이 여전히 가로막고 있음 -> 유효
+        return Physics.Raycast(eyePos, dirToPlayer, dist, furnitureLayer);
+    }
+
+    // 엄폐 완전 해제 후 Alert 전환 헬퍼
     private void ExitCoverToAlert()
     {
-        SetAnimatorCrouch(false);
-        EnterAlert();
+        EnterAlertFromCover();
     }
 
     // =====================================================================
@@ -755,6 +838,15 @@ public class MonsterBrain : MonoBehaviour
 
     private void FireOnce(Transform target)
     {
+        // 총알 1발 발사마다 사격 사운드 재생
+        // 사격 사운드 클립과 볼륨은 MonsterData 에서 가져옴
+        if (data.fireSoundClips != null && data.fireSoundClips.Length > 0 && fireAudioSource != null)
+        {
+            int index = Random.Range(0, data.fireSoundClips.Length);
+            if (data.fireSoundClips[index] != null)
+                fireAudioSource.PlayOneShot(data.fireSoundClips[index], data.fireSoundVolume);
+        }
+
         if (bulletPrefab != null && firePoint != null)
         {
             Quaternion spreadRot = Quaternion.Euler(
@@ -764,11 +856,8 @@ public class MonsterBrain : MonoBehaviour
             );
             Quaternion finalRot = firePoint.rotation * spreadRot;
 
-            // 총알 발사 방향 벡터 (이펙트에 전달)
             Vector3 fireDirection = finalRot * Vector3.forward;
 
-            // 총구 이펙트 재생 (머즐 플래시 + 궤도 이펙트)
-            // muzzleEffect 가 null 이면 이펙트 없이 그냥 넘어감
             if (muzzleEffect != null)
                 muzzleEffect.PlayFireEffect(fireDirection);
 
@@ -936,15 +1025,13 @@ public class MonsterBrain : MonoBehaviour
     }
 
     // 앉기/일어서기 관련 파라미터를 한 곳에서 처리하는 헬퍼
-    // IsCrouching Bool 과 IsAiming Bool 을 동시에 제어
+    // IsCrouching 만 제어하고 IsAiming 은 건드리지 않음
+    // IsAiming 을 여기서 끄면 재엄폐 이동 중 Alert_Idle 로 빠지는 문제가 생김
+    // IsAiming 은 EnterPatrol, EnterSearch, EnterCombatCharge 에서만 끔
     private void SetAnimatorCrouch(bool isCrouching)
     {
         if (monsterAnimator == null) return;
         monsterAnimator.SetBool(AnimIsCrouching, isCrouching);
-
-        // 엄폐 해제 시 IsAiming 도 함께 끄기 (조준 애니메이션이 남아있지 않게)
-        if (!isCrouching)
-            monsterAnimator.SetBool(AnimIsAiming, false);
     }
 
     private void SetAnimatorAlert(bool isAlert)

@@ -40,9 +40,6 @@ public class MonsterData : ScriptableObject
     public int randomPointMaxAttempts = 10;
 
     // 감지 방식을 선택하는 열거형
-    // RadiusOnly   = 원형 범위만 사용 (1스테이지)
-    // SightOnly    = 시야각만 사용
-    // RadiusAndSight = 원형 범위 + 시야각 모두 사용 (2, 3스테이지)
     public enum DetectionMode
     {
         RadiusOnly,      // 원형 범위만 사용
@@ -53,15 +50,20 @@ public class MonsterData : ScriptableObject
     [Tooltip("감지 방식 선택\n- RadiusOnly: 원형 범위만 (1스테이지)\n- SightOnly: 시야각만\n- RadiusAndSight: 둘 다 사용 (2, 3스테이지)")]
     public DetectionMode detectionMode = DetectionMode.RadiusOnly;
 
-    [Tooltip("원형 범위 감지 반경 (미터). RadiusOnly 또는 RadiusAndSight 일 때 사용됨")]
+    [Tooltip("원형 범위 감지 반경 (미터)")]
     public float detectionRadius = 8f;
 
-    [Tooltip("시야 감지 범위 반경 (미터). SightOnly 또는 RadiusAndSight 일 때 사용됨")]
+    [Tooltip("시야 감지 범위 반경 (미터)")]
     public float sightRange = 15f;
 
-    [Tooltip("시야각 (도). 예: 90이면 정면 기준 좌우 45도씩 볼 수 있음. SightOnly 또는 RadiusAndSight 일 때 사용됨")]
+    [Tooltip("시야각 (도). 예: 90이면 정면 기준 좌우 45도씩")]
     [Range(10f, 360f)]
     public float sightAngle = 90f;
+
+    [Tooltip("수직 시야각 (도). 예: 60이면 눈 기준 위아래 30도씩 감지\n"
+           + "계단이나 높낮이 차이가 있는 맵에서는 넓게 설정하는 것을 권장 (기본 60도)")]
+    [Range(10f, 180f)]
+    public float sightVerticalAngle = 60f;
 
     [Tooltip("플레이어를 감지할 수 있는 레이어 (Player 레이어 포함)")]
     public LayerMask playerLayer;
@@ -83,21 +85,21 @@ public class MonsterData : ScriptableObject
     public float attackDamage = 20f;
 
     [Header("돌진 설정")]
-    [Tooltip("돌진 중 이동 속도 (초당 미터). 활동 구역 제한이 해제됨")]
+    [Tooltip("돌진 중 이동 속도 (초당 미터)")]
     public float chargeSpeed = 8f;
 
-    [Tooltip("돌진 지속 시간 (초). 이 시간이 지나면 돌진 종료")]
+    [Tooltip("돌진 지속 시간 (초)")]
     public float chargeDuration = 3f;
 
     [Tooltip("돌진 활성화 시 감지 반경 (미터). 벽 관통 감지에 사용됨")]
     public float chargeDetectionRadius = 100f;
 
-    [Header("행동 확률 설정 (합계가 반드시 1.0 이 될 필요는 없음. 우선순위 순서로 판단)")]
+    [Header("행동 확률 설정")]
     [Tooltip("돌진 공격 발동 확률 (0~1). 예: 0.05 = 5%")]
     [Range(0f, 1f)]
     public float chargeAttackChance = 0.05f;
 
-    [Tooltip("가구가 있을 때 엄폐를 선택할 확률 (0~1). 나머지 확률은 조준 공격")]
+    [Tooltip("가구가 있을 때 엄폐를 선택할 확률 (0~1)")]
     [Range(0f, 1f)]
     public float coverChance = 0.5f;
 
@@ -115,6 +117,48 @@ public class MonsterData : ScriptableObject
     [Range(0f, 1f)]
     public float burst3Chance = 0.35f;
 
-    [Tooltip("점사 발사 간격 (초). 점사 중 각 탄 사이의 딜레이")]
+    [Tooltip("점사 발사 간격 (초)")]
     public float burstFireInterval = 0.1f;
+
+    [Header("사격 사운드 설정")]
+    [Tooltip("총알 1발이 나갈 때마다 재생할 사격 사운드 클립 목록.\n"
+           + "여러 개 등록하면 발사마다 랜덤으로 하나 재생됨")]
+    public AudioClip[] fireSoundClips;
+
+    [Tooltip("사격 사운드 볼륨 (0~1)")]
+    [Range(0f, 1f)]
+    public float fireSoundVolume = 1f;
+
+    [Header("피격 이펙트 설정")]
+    [Tooltip("true: 피격 시 출혈 이펙트 재생 / false: 출혈 이펙트 없음\n"
+           + "기계형 몬스터처럼 피가 나오면 안 되는 경우 false 로 설정")]
+    public bool showBloodEffect = true;
+
+    [Tooltip("true: 피격 시 신음 음성 재생 / false: 피격 음성 없음")]
+    public bool playHitSound = true;
+
+    [Header("아이템 드랍 설정")]
+    [Tooltip("true: 사망 시 아이템 드랍 / false: 드랍 없음")]
+    public bool dropItemOnDeath = false;
+
+    [Tooltip("드랍할 아이템 프리팹 목록.\n"
+           + "여러 개 등록하면 dropCount 만큼 랜덤으로 선택해서 드랍함.\n"
+           + "dropItemOnDeath 가 true 일 때만 사용됨")]
+    public GameObject[] dropItemPrefabs;
+
+    [Tooltip("드랍할 아이템 개수.\n"
+           + "dropItemPrefabs 목록에서 이 개수만큼 랜덤으로 선택해서 드랍.\n"
+           + "예: dropItemPrefabs 에 탄약/회복약 등록 후 dropCount = 2 이면 그 중 2개 드랍")]
+    [Min(1)]
+    public int dropCount = 1;
+
+    [Tooltip("드랍 확률 (0~1). 예: 0.5 = 50% 확률로 드랍.\n"
+           + "1.0 이면 항상 드랍, 0.0 이면 절대 드랍 안 함")]
+    [Range(0f, 1f)]
+    public float dropChance = 1f;
+
+    [Tooltip("드랍된 아이템이 생성되는 높이 오프셋 (미터).\n"
+           + "0이면 몬스터 발 위치, 0.5면 허리 높이 정도에서 생성됨")]
+    [Min(0f)]
+    public float dropSpawnHeight = 0.5f;
 }

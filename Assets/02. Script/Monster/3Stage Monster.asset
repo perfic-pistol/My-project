@@ -23,8 +23,9 @@ MonoBehaviour:
   randomPointMaxAttempts: 10
   detectionMode: 2
   detectionRadius: 8
-  sightRange: 15
+  sightRange: 30
   sightAngle: 90
+  sightVerticalAngle: 60
   playerLayer:
     serializedVersion: 2
     m_Bits: 131072
@@ -38,9 +39,20 @@ MonoBehaviour:
   chargeSpeed: 8
   chargeDuration: 3
   chargeDetectionRadius: 100
-  chargeAttackChance: 0
-  coverChance: 1
+  chargeAttackChance: 1
+  coverChance: 0
   spreadAngle: 3
   burst2Chance: 0.4
   burst3Chance: 0.35
   burstFireInterval: 0.1
+  fireSoundClips:
+  - {fileID: 8300000, guid: ec5cd49f8987a494d96bf93339c8bfb3, type: 3}
+  fireSoundVolume: 1
+  showBloodEffect: 1
+  playHitSound: 1
+  dropItemOnDeath: 1
+  dropItemPrefabs:
+  - {fileID: 1950985239777222504, guid: 7f74e56fd61047940ae069e53878923f, type: 3}
+  dropCount: 1
+  dropChance: 1
+  dropSpawnHeight: 0.5

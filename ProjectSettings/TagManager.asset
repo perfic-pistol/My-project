@@ -12,6 +12,8 @@ TagManager:
   - BodyShot
   - Wall
   - Monster
+  - Boss
+  - GunSoundMarker
   layers:
   - Default
   - TransparentFX
@@ -35,8 +37,8 @@ TagManager:
   - Wall
   - Furniture
   - Monster
-  - 
-  - 
+  - Item
+  - Boss
   - 
   - 
   - 

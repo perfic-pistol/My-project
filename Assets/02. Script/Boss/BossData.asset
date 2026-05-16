@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 268cc066947ab0e4b975a5f35eb2b85a, type: 3}
+  m_Name: BossData
+  m_EditorClassIdentifier: Assembly-CSharp::BossData
+  patrolSpeed: 1.5
+  investigateSpeed: 4
+  chaseSpeed: 5
+  angularSpeed: 120
+  acceleration: 6
+  stoppingDistance: 1.5
+  agentRadius: 0.8
+  agentHeight: 2
+  patrolWanderRadius: 20
+  patrolRepickDistance: 3
+  loudSoundDetectionRange: 80
+  mediumSoundDetectionRange: 20
+  quietSoundDetectionRange: 8
+  soundCheckInterval: 0.2
+  loudSoundObjectKeywords: []
+  mediumSoundObjectKeywords: []
+  quietSoundObjectKeywords:
+  - Player
+  loudClipKeywords:
+  - Rifle_Fire_SFX
+  mediumClipKeywords:
+  - Rifle_Reload_SFX
+  - Jump_SFX
+  - Land_SFX
+  quietClipKeywords:
+  - StopCrouch_SFX
+  - StartCrouch_SFX
+  - wood_Footstep02
+  - wood_Footstep01
+  ignoredClipKeywords:
+  - AMB_S3_002
+  searchRadius: 12
+  searchTimeout: 25
+  meleeRange: 2.5
+  meleeDamage: 200
+  attackCooldown: 1.5
+  attackLostTimeout: 6

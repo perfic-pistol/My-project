@@ -249,17 +249,36 @@ public class MonsterDetection : MonoBehaviour
         if (hitCount == 0) return false;
 
         Transform candidate = overlapResults[0].transform;
-
-        // 시야각 안에 있는지 확인
-        // Vector3.Angle: 두 벡터 사이의 각도를 반환 (0 ~ 180도)
         Vector3 directionToPlayer = (candidate.position - eyePoint.position).normalized;
-        float angle = Vector3.Angle(eyePoint.forward, directionToPlayer);
 
-        // sightAngle 은 전체 시야각이므로 절반으로 나눠서 비교
-        // 예: sightAngle = 90도 -> 정면 기준 좌우 45도씩
-        if (angle > data.sightAngle * 0.5f) return false; // 시야각 밖
+        // ── 수평 시야각 체크 (좌우) ──────────────────────────────────────
+        // xz 평면에 투영해서 좌우 각도만 비교
+        // y 성분을 제거하면 위아래 높이차가 수평 각도에 영향을 주지 않음
+        Vector3 flatForward = eyePoint.forward;
+        flatForward.y = 0f;
+        flatForward = flatForward.normalized;
 
-        // 시야각 안에 있음 -> 벽 차단 여부 확인
+        Vector3 flatToPlayer = directionToPlayer;
+        flatToPlayer.y = 0f;
+        flatToPlayer = flatToPlayer.normalized;
+
+        // flatForward 또는 flatToPlayer 가 0벡터이면 (정수직 방향) 수평 각도 체크 생략
+        float horizontalAngle = 0f;
+        if (flatForward.sqrMagnitude > 0.001f && flatToPlayer.sqrMagnitude > 0.001f)
+            horizontalAngle = Vector3.Angle(flatForward, flatToPlayer);
+
+        if (horizontalAngle > data.sightAngle * 0.5f) return false;
+
+        // ── 수직 시야각 체크 (위아래) ────────────────────────────────────
+        // 플레이어 방향의 수직 각도(고도각)를 계산
+        // Mathf.Asin: 방향벡터의 y 성분으로 상하 각도를 구함
+        // 결과값 범위: -90도(정아래) ~ +90도(정위)
+        float verticalAngle = Mathf.Asin(Mathf.Clamp(directionToPlayer.y, -1f, 1f))
+                              * Mathf.Rad2Deg;
+
+        if (Mathf.Abs(verticalAngle) > data.sightVerticalAngle * 0.5f) return false;
+
+        // 수평/수직 시야각 모두 통과 -> 벽 차단 여부 확인
         if (HasLineOfSight(candidate))
         {
             playerTransform = candidate;
@@ -270,28 +289,48 @@ public class MonsterDetection : MonoBehaviour
     }
 
     // 몬스터 눈 위치에서 플레이어까지 시선이 통하는지 확인 (벽 차단 검사)
-    // Physics.Raycast: 직선을 쏴서 장애물이 있는지 확인
+    // 플레이어의 머리/중심/발 세 지점으로 Ray 를 쏴서
+    // 하나라도 통과되면 감지 성공으로 처리
+    // 세 지점 모두 막혀야 완전히 차단된 것으로 판단 -> 벽 모서리 틈 오판 방지
     private bool HasLineOfSight(Transform target)
     {
         Vector3 origin = eyePoint.position;
-        Vector3 direction = (target.position - origin).normalized;
-        float distance = Vector3.Distance(origin, target.position);
 
-        // Raycast 로 장애물 레이어에 뭔가 맞는지 확인
-        // 맞으면 벽이 있다는 뜻 -> 감지 실패
-        bool blockedByObstacle = Physics.Raycast(
-            origin,
-            direction,
-            distance,
-            data.obstacleLayer  // 벽/가구 레이어만 검사
-        );
+        // 플레이어 콜라이더 기준으로 발/중심/머리 세 지점 계산
+        Vector3 footPos = target.position;
+        Vector3 centerPos = target.position + Vector3.up;
+        Vector3 headPos = target.position + Vector3.up * 1.8f;
 
-        // 디버그용 레이 시각화 (씬 뷰에서 확인 가능, 빌드에는 영향 없음)
+        Collider targetCol = target.GetComponent<Collider>();
+        if (targetCol != null)
+        {
+            Bounds b = targetCol.bounds;
+            footPos = new Vector3(b.center.x, b.min.y + 0.1f, b.center.z);
+            centerPos = b.center;
+            headPos = new Vector3(b.center.x, b.max.y - 0.1f, b.center.z);
+        }
+
+        // 세 지점 중 하나라도 시선이 통하면 감지 성공
+        if (IsPointVisible(origin, centerPos)) return true;
+        if (IsPointVisible(origin, headPos)) return true;
+        if (IsPointVisible(origin, footPos)) return true;
+
+        // 세 지점 모두 막혀있으면 감지 실패
+        return false;
+    }
+
+    // origin 에서 targetPoint 까지 obstacleLayer 에 막히지 않는지 확인
+    private bool IsPointVisible(Vector3 origin, Vector3 targetPoint)
+    {
+        Vector3 direction = (targetPoint - origin).normalized;
+        float distance = Vector3.Distance(origin, targetPoint);
+
+        bool blocked = Physics.Raycast(origin, direction, distance, data.obstacleLayer);
+
         Debug.DrawRay(origin, direction * distance,
-            blockedByObstacle ? Color.red : Color.green, detectionInterval);
+            blocked ? Color.red : Color.green, detectionInterval);
 
-        // 장애물에 막히지 않았으면 시선 통함
-        return !blockedByObstacle;
+        return !blocked;
     }
 
     // =====================================================================
@@ -415,12 +454,28 @@ public class MonsterDetection : MonoBehaviour
             Gizmos.color = new Color(0.3f, 0.8f, 1f, 0.1f);
             Gizmos.DrawSphere(eye, data.sightRange);
 
+            // 수평 시야각 경계선 (좌우)
             Gizmos.color = new Color(0.3f, 0.8f, 1f, 0.9f);
-            float halfAngle = data.sightAngle * 0.5f;
-            Vector3 leftDir = Quaternion.Euler(0f, -halfAngle, 0f) * forward;
-            Vector3 rightDir = Quaternion.Euler(0f, halfAngle, 0f) * forward;
+            float halfH = data.sightAngle * 0.5f;
+            Vector3 leftDir = Quaternion.Euler(0f, -halfH, 0f) * forward;
+            Vector3 rightDir = Quaternion.Euler(0f, halfH, 0f) * forward;
             Gizmos.DrawRay(eye, leftDir * data.sightRange);
             Gizmos.DrawRay(eye, rightDir * data.sightRange);
+
+            // 수직 시야각 경계선 (위아래)
+            float halfV = data.sightVerticalAngle * 0.5f;
+
+            // forward 의 수평 성분을 기준으로 위아래 경계선 계산
+            Vector3 flatFwd = new Vector3(forward.x, 0f, forward.z).normalized;
+            if (flatFwd.sqrMagnitude < 0.001f) flatFwd = Vector3.forward;
+
+            // 위아래 회전축: forward 의 오른쪽 방향 (Cross 로 계산)
+            Vector3 rightAxis = Vector3.Cross(Vector3.up, flatFwd).normalized;
+            Vector3 upDir = Quaternion.AngleAxis(-halfV, rightAxis) * flatFwd;
+            Vector3 downDir = Quaternion.AngleAxis(halfV, rightAxis) * flatFwd;
+            Gizmos.color = new Color(0.3f, 1f, 0.6f, 0.9f);
+            Gizmos.DrawRay(eye, upDir * data.sightRange);
+            Gizmos.DrawRay(eye, downDir * data.sightRange);
 
             DrawArcGizmo(eye, forward, data.sightRange, data.sightAngle, new Color(0.3f, 0.8f, 1f, 0.5f));
         }

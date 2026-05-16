@@ -58,7 +58,18 @@ public class MonsterHealth : MonoBehaviour, IDamageable
     [Tooltip("앉아 있을 때 (엄폐 중) 사망 트리거 파라미터 이름. 엄폐 사망 애니메이션이 없으면 deathAnimationTrigger 와 동일하게 설정해도 됨")]
     public string crouchDeathAnimationTrigger = "CrouchDie";
 
-    [Header("사망 이벤트")]
+    [Header("피격 음성 설정")]
+    [Tooltip("피격 시 재생할 신음 오디오 클립 목록. 여러 개 등록하면 매 피격마다 랜덤으로 하나 재생됨")]
+    public AudioClip[] hitSoundClips;
+
+    [Tooltip("피격 음성 쿨타임 (초). 이 시간 안에 또 피격당하면 음성이 다시 재생되지 않음\n"
+           + "연속 피격 시 신음소리가 겹치는 것을 방지함")]
+    [Min(0f)]
+    public float hitSoundCooldown = 0.5f;
+
+    [Tooltip("피격 음성 볼륨 (0~1)")]
+    [Range(0f, 1f)]
+    public float hitSoundVolume = 1f;
     [Tooltip("몬스터가 스폰될 때 실행할 이벤트")]
     public UnityEvent OnSpawn;
 
@@ -82,9 +93,22 @@ public class MonsterHealth : MonoBehaviour, IDamageable
     // 체력 바 코루틴 참조 (새 코루틴 시작 전에 기존 코루틴을 중단해서 덮어쓰기 방지)
     private Coroutine healthLerpCoroutine;
 
+    // 피격 음성 재생을 위한 AudioSource
+    // Awake 에서 자동으로 추가하므로 인스펙터에서 따로 추가하지 않아도 됨
+    private AudioSource audioSource;
+
+    // 마지막으로 피격 음성을 재생한 시각
+    // 현재 시각 - lastHitSoundTime 이 hitSoundCooldown 보다 작으면 재생하지 않음
+    private float lastHitSoundTime = -999f;
+
     // 컴포넌트 캐싱 (Awake 에서 한 번만 가져와서 저장, 매 프레임 GetComponent 방지)
     private MonsterBrain monsterBrain;
     private NavMeshAgent navAgent;
+
+    // MainCamera 캐싱
+    // 출혈 이펙트가 카메라를 바라보도록 방향을 계산할 때 사용
+    // Camera.main 은 매 호출마다 씬을 탐색하므로 Start 에서 한 번만 캐싱
+    private Transform mainCameraTransform;
 
     // =====================================================================
     // 유니티 생명주기
@@ -94,6 +118,15 @@ public class MonsterHealth : MonoBehaviour, IDamageable
     {
         monsterBrain = GetComponent<MonsterBrain>();
         navAgent = GetComponent<NavMeshAgent>();
+
+        // AudioSource 가 없으면 자동으로 추가
+        // 피격 음성 재생에 사용. PlayOneShotPitch 로 재생하므로 루프는 꺼둠
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+            audioSource = gameObject.AddComponent<AudioSource>();
+
+        audioSource.playOnAwake = false;
+        audioSource.loop = false;
     }
 
     private void Start()
@@ -109,6 +142,10 @@ public class MonsterHealth : MonoBehaviour, IDamageable
 
         if (showHealthUI && healthBar != null)
             healthBar.fillAmount = 1f;
+
+        // MainCamera 캐싱 (피격 이펙트 방향 계산에 사용)
+        if (Camera.main != null)
+            mainCameraTransform = Camera.main.transform;
 
         OnSpawn?.Invoke();
     }
@@ -133,16 +170,46 @@ public class MonsterHealth : MonoBehaviour, IDamageable
 
         Debug.Log($"[{gameObject.name}] {damage} 피해! 남은 체력: {Health}/{data.maxHealth}");
 
-        // 출혈 이펙트 생성 (hitBloodEffect 가 연결되어 있을 때만)
-        // 몬스터 위치에 생성하고 hitEffectLifetime 초 후 자동 삭제
-        if (hitBloodEffect != null)
+        // 출혈 이펙트 생성
+        // data.showBloodEffect 가 false 이면 이펙트 생성 건너뜀
+        if (hitBloodEffect != null && data.showBloodEffect)
         {
-            GameObject blood = Instantiate(hitBloodEffect, transform.position, Quaternion.identity);
+            Vector3 spawnPos = transform.position + Vector3.up;
+            Collider col = GetComponent<Collider>();
+            if (col != null)
+                spawnPos = col.bounds.center;
+
+            // 카메라 -> 몬스터 방향을 구한 뒤 180도 반전
+            // 반전 이유: 총알이 날아온 방향의 반대쪽(몸 뒤쪽)으로 피가 튀는 것이 자연스러움
+            Vector3 hitDirection = Vector3.forward;
+            if (mainCameraTransform != null)
+                hitDirection = (spawnPos - mainCameraTransform.position).normalized;
+
+            Quaternion bloodRot = Quaternion.LookRotation(-hitDirection);
+            GameObject blood = Instantiate(hitBloodEffect, spawnPos, bloodRot);
             Destroy(blood, hitEffectLifetime);
         }
 
         UpdateHealthBar();
         OnDamaged?.Invoke();
+
+        // 피격 음성 재생
+        // data.playHitSound 가 false 이면 재생하지 않음
+        // 쿨타임이 지났을 때만 재생해서 연속 피격 시 겹치는 것을 방지
+        if (data.playHitSound && hitSoundClips != null && hitSoundClips.Length > 0)
+        {
+            if (Time.time - lastHitSoundTime >= hitSoundCooldown)
+            {
+                lastHitSoundTime = Time.time;
+
+                // 목록에서 랜덤으로 하나 선택해서 재생
+                // PlayOneShot: 현재 재생 중인 소리를 끊지 않고 동시 재생 가능
+                int index = Random.Range(0, hitSoundClips.Length);
+                AudioClip clip = hitSoundClips[index];
+                if (clip != null)
+                    audioSource.PlayOneShot(clip, hitSoundVolume);
+            }
+        }
 
         if (Health <= 0f)
         {
@@ -240,11 +307,61 @@ public class MonsterHealth : MonoBehaviour, IDamageable
         if (deathEffect != null)
             Instantiate(deathEffect, transform.position, Quaternion.identity);
 
+        // ── 아이템 드랍 ──────────────────────────────────────────────────
+
+        // MonsterData 에서 드랍 여부 확인
+        // dropItemOnDeath 가 false 이거나 드랍 프리팹 목록이 비어있으면 드랍 안 함
+        if (data.dropItemOnDeath
+            && data.dropItemPrefabs != null
+            && data.dropItemPrefabs.Length > 0)
+        {
+            // 드랍 확률 체크 (Random.value: 0~1 사이 랜덤값)
+            // 예: dropChance = 0.7 이면 70% 확률로 드랍
+            if (Random.value <= data.dropChance)
+            {
+                DropItems();
+            }
+        }
+
         // ── 오브젝트 처리 ────────────────────────────────────────────────
 
         if (destroyOnDie)
             Destroy(gameObject, destroyDelay);
         else
             enabled = false;
+    }
+
+    // 아이템 드랍 실행 함수
+    // dropItemPrefabs 목록에서 dropCount 개를 랜덤으로 골라서 몬스터 위치에 생성
+    private void DropItems()
+    {
+        // 드랍 위치: 몬스터 발 위치에서 dropSpawnHeight 만큼 위
+        Vector3 dropPosition = transform.position + Vector3.up * data.dropSpawnHeight;
+
+        // dropCount 만큼 반복해서 아이템 드랍
+        for (int i = 0; i < data.dropCount; i++)
+        {
+            // 프리팹 목록에서 랜덤으로 하나 선택
+            // Random.Range(0, length): 0 이상 length 미만 정수 반환
+            int index = Random.Range(0, data.dropItemPrefabs.Length);
+            GameObject prefab = data.dropItemPrefabs[index];
+
+            // 프리팹이 null 이면 건너뜀 (목록에 빈 슬롯이 있을 때 방지)
+            if (prefab == null) continue;
+
+            // 여러 개를 드랍할 때 같은 위치에 겹치지 않도록 살짝 랜덤 오프셋 추가
+            // Random.insideUnitSphere: 반지름 1 구 안의 랜덤 방향
+            // y 를 0 으로 고정하고 xz 평면에서만 퍼지게 해서 공중에 뜨지 않게 함
+            Vector3 offset = Vector3.zero;
+            if (data.dropCount > 1)
+            {
+                Vector3 randomOffset = Random.insideUnitSphere * 0.3f;
+                randomOffset.y = 0f;
+                offset = randomOffset;
+            }
+
+            Instantiate(prefab, dropPosition + offset, Quaternion.identity);
+            Debug.Log($"[{gameObject.name}] 아이템 드랍: {prefab.name}");
+        }
     }
 }

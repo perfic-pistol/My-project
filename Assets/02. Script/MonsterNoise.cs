@@ -1,129 +1,131 @@
 ﻿using UnityEngine;
-using UnityEngine.Audio;
-using UnityEngine.SceneManagement;
 using System.Collections;
 
+// 카메라와 오디오소스 컴포넌트가 반드시 필요함
 [RequireComponent(typeof(Camera))]
 [RequireComponent(typeof(AudioSource))]
 public class MonsterNoise : MonoBehaviour
 {
-    [Header("Monster Settings")]
+    [Header("몬스터 설정")]
+    // 노이즈 효과의 기준이 될 몬스터 오브젝트를 연결하세요
     public Transform monster;
 
-    [Header("Distance Settings")]
+    [Header("거리 설정")]
+    // 이 거리 이내로 들어오면 노이즈 효과가 시작됨
     public float startDistance = 20f;
+    // 이 거리 이내에서 노이즈 효과가 최대가 됨
     public float maxNoiseDistance = 3f;
 
-    [Header("Noise Style")]
+    [Header("노이즈 스타일")]
+    // 0에 가까울수록 스타일A, 1에 가까울수록 스타일B
     [Range(0f, 1f)]
     public float noiseType = 0f;
+    // 노이즈 알갱이 크기. 숫자가 클수록 알갱이가 커짐
     [Range(10f, 300f)]
     public float grainSize = 150f;
 
-    [Header("Monster Mask")]
+    [Header("몬스터 주변 클리어 영역")]
+    // 몬스터 주변에 노이즈가 없는 깨끗한 원의 크기
     [Range(0f, 1f)]
     public float monsterClearSize = 0.25f;
+    // 클리어 영역 가장자리의 부드러움 정도
     [Range(0.01f, 1f)]
     public float edgeSoftness = 0.2f;
 
-    [Header("Collision Settings")]
-    [Tooltip("몬스터와 이 거리 이하면 씬 전환")]
-    public float collisionDistance = 1.5f;
-
-    [Header("Sound Settings")]
-    [Tooltip("노이즈 효과 중 재생될 사운드")]
+    [Header("사운드 설정")]
+    // 노이즈 효과 중 재생될 사운드 파일을 연결하세요
     public AudioClip noiseSound;
 
-    [Tooltip("죽을 때 숨길 UI 오브젝트들 (Canvas 등)")]
-    public GameObject[] uiObjects;
-    [Tooltip("플레이어 손 등 카메라 자식 오브젝트들")]
-    public GameObject[] playerHandObjects;
-
-    [Header("Shader Settings")]
-    [Tooltip("NoiseShader1을 여기에 직접 드래그해서 연결하세요")]
+    [Header("셰이더 설정")]
+    // NoiseShader1 파일을 인스펙터에서 직접 드래그해서 연결하세요
     public Shader noiseShaderRef;
 
+    // 카메라 컴포넌트 참조
     Camera cam;
+
+    // 노이즈 화면 효과에 사용될 머티리얼
     Material noiseMat;
-    Shader noiseShader;
+
+    // 오디오소스 컴포넌트 참조
     AudioSource audioSource;
 
-    // 레이캐스트 결과를 캐싱
+    // 벽에 가려져 있는지 여부 캐싱 (매 프레임 레이캐스트 방지용)
     bool isBlocked = false;
-    float checkInterval = 0.1f;  // 0.1초마다 체크
+
+    // 레이캐스트 체크 간격 (초 단위, 0.1초마다 한 번 체크)
+    float checkInterval = 0.1f;
+
+    // 체크 타이머 누적값
     float checkTimer = 0f;
-
-    // 씬 전환 중복 실행 방지
-    bool isChangingScene = false;
-
-    // 까만 화면 전환용
-    float blackScreenIntensity = 0f;
-    bool isBlackScreen = false;
 
     void Start()
     {
+        // 오디오 리스너 정상 작동 보장
         AudioListener.pause = false;
 
+        // 카메라 컴포넌트 가져오기
         cam = GetComponent<Camera>();
+
+        // 노이즈 머티리얼 초기화
         InitMaterial();
 
-        // AudioSource 설정
+        // 오디오소스 초기 설정
         audioSource = GetComponent<AudioSource>();
         audioSource.clip = noiseSound;
         audioSource.loop = true;
         audioSource.playOnAwake = false;
     }
 
+    // 노이즈 셰이더 머티리얼 초기화 함수
     void InitMaterial()
     {
-        // 인스펙터에서 직접 연결된 셰이더 우선 사용
-        noiseShader = noiseShaderRef != null ? noiseShaderRef : Shader.Find("Custom/NoiseShader1");
+        // 인스펙터에서 연결된 셰이더를 우선 사용하고, 없으면 이름으로 찾음
+        Shader noiseShader = noiseShaderRef != null
+            ? noiseShaderRef
+            : Shader.Find("Custom/NoiseShader1");
 
-        // 셰이더를 못 찾으면 중단
+        // 셰이더를 찾지 못한 경우 오류 출력 후 중단
         if (noiseShader == null)
         {
             Debug.LogError("NoiseShader를 찾을 수 없습니다. 셰이더 파일 이름을 확인하세요.");
             return;
         }
 
-        // 셰이더가 정상인지 확인
+        // 현재 플랫폼에서 셰이더를 지원하지 않는 경우 오류 출력 후 중단
         if (!noiseShader.isSupported)
         {
             Debug.LogError("NoiseShader가 현재 플랫폼에서 지원되지 않습니다.");
             return;
         }
 
+        // 머티리얼 생성 및 씬에 저장되지 않도록 설정
         noiseMat = new Material(noiseShader);
         noiseMat.hideFlags = HideFlags.HideAndDontSave;
     }
 
     void Update()
     {
-        if (monster == null || isChangingScene) return;
+        // 몬스터가 없으면 아무것도 하지 않음
+        if (monster == null) return;
 
-        // 충돌 거리 체크
+        // 몬스터와의 현재 거리 계산
         float dist = Vector3.Distance(transform.position, monster.position);
 
-        // 몬스터 접촉 시 씬 전환 시작
-        if (dist <= collisionDistance)
-        {
-            StartCoroutine(BlackScreenAndChangeScene());
-            return;
-        }
-
-        // 노이즈 범위 안에 있고 벽에 안 막혔으면 사운드 재생
-        // 볼륨은 항상 1f로 고정
+        // 벽에 막히지 않았을 때만 사운드 재생
         if (!isBlocked)
         {
+            // 거리에 따라 노이즈 강도 계산 (0~1 사이 값)
             float intensity = 1f - Mathf.InverseLerp(maxNoiseDistance, startDistance, dist);
             intensity = Mathf.Clamp01(intensity);
 
+            // 강도가 있으면 사운드 재생, 없으면 정지
             if (intensity > 0.01f)
             {
                 if (!audioSource.isPlaying && noiseSound != null)
                     audioSource.Play();
 
-                audioSource.volume = 1f; // 볼륨 항상 최대 고정
+                // 볼륨은 항상 최대로 고정
+                audioSource.volume = 1f;
             }
             else
             {
@@ -133,13 +135,18 @@ public class MonsterNoise : MonoBehaviour
         }
         else
         {
+            // 벽에 막혀 있으면 사운드 정지
             if (audioSource.isPlaying)
                 audioSource.Stop();
         }
 
-        // 0.1초마다 벽 체크
+        // 타이머 누적
         checkTimer += Time.deltaTime;
+
+        // 아직 체크 간격이 안 됐으면 리턴
         if (checkTimer < checkInterval) return;
+
+        // 타이머 초기화 후 레이캐스트로 벽 체크
         checkTimer = 0f;
 
         Vector3 direction = monster.position - transform.position;
@@ -149,77 +156,32 @@ public class MonsterNoise : MonoBehaviour
             out RaycastHit hit,
             dist
         );
+
+        // 레이캐스트에 뭔가 맞았고 그게 몬스터가 아니라면 벽으로 판단
         isBlocked = hasWall && hit.transform != monster;
     }
 
-    IEnumerator BlackScreenAndChangeScene()
-    {
-        isChangingScene = true;
-
-        // 모든 사운드 정지
-        AudioListener.pause = true;
-
-        // UI 숨기기
-        foreach (GameObject ui in uiObjects)
-            if (ui != null) ui.SetActive(false);
-
-        // 플레이어 손 숨기기
-        foreach (GameObject hand in playerHandObjects)
-            if (hand != null) hand.SetActive(false);
-
-        // 까만 화면 노이즈 시작
-        isBlackScreen = true;
-
-        // 3초 대기
-        yield return new WaitForSeconds(3f);
-
-        // 씬 전환
-        string currentScene = SceneManager.GetActiveScene().name;
-        string nextScene = "";
-
-        if (currentScene == "Map1")
-            nextScene = "Map2";
-        else if (currentScene == "Map2")
-            nextScene = "Map3";
-        else if (currentScene == "Map3")
-            nextScene = "Opening";
-        else
-        {
-            Debug.LogWarning("현재 씬이 Map1, Map2, Map3가 아닙니다: " + currentScene);
-            isChangingScene = false;
-            isBlackScreen = false;
-            AudioListener.pause = false; // 실패 시 사운드 복구
-
-            // 실패 시 다시 보이게 복구
-            foreach (GameObject ui in uiObjects)
-                if (ui != null) ui.SetActive(true);
-            foreach (GameObject hand in playerHandObjects)
-                if (hand != null) hand.SetActive(true);
-
-            yield break;
-        }
-
-        SceneManager.LoadScene(nextScene);
-    }
-
+    // 카메라 렌더링이 끝난 후 화면에 노이즈 효과를 덧씌우는 함수
     void OnRenderImage(RenderTexture src, RenderTexture dest)
     {
-        // 머티리얼이 없거나 깨진 경우 그냥 통과
+        // 머티리얼이 없거나 셰이더가 지원 안 되면 효과 없이 그대로 출력
         if (noiseMat == null || !noiseMat.shader.isSupported)
         {
             Graphics.Blit(src, dest);
             return;
         }
 
+        // 몬스터가 없으면 효과 없이 그대로 출력
         if (monster == null)
         {
             Graphics.Blit(src, dest);
             return;
         }
 
+        // 몬스터와의 거리 계산
         float dist = Vector3.Distance(transform.position, monster.position);
 
-        // 플레이어 → 몬스터 방향으로 레이캐스트
+        // 렌더링용 레이캐스트로 벽 체크
         Vector3 direction = monster.position - transform.position;
         bool hasWallBetween = Physics.Raycast(
             transform.position,
@@ -228,27 +190,10 @@ public class MonsterNoise : MonoBehaviour
             dist
         );
 
-        // 까만 화면 상태면 검은 텍스처로 덮기
-        if (isBlackScreen)
-        {
-            RenderTexture black = RenderTexture.GetTemporary(src.width, src.height);
-            GL.Clear(true, true, Color.black);
-            noiseMat.SetFloat("_Intensity", 1f);
-            noiseMat.SetFloat("_NoiseType", noiseType);
-            noiseMat.SetFloat("_GrainSize", grainSize);
-            noiseMat.SetFloat("_MonsterU", -9999f);
-            noiseMat.SetFloat("_MonsterV", -9999f);
-            noiseMat.SetFloat("_ClearSize", 0f);
-            noiseMat.SetFloat("_EdgeSoftness", 0.01f);
-            Graphics.Blit(black, dest, noiseMat);
-            RenderTexture.ReleaseTemporary(black);
-            return;
-        }
-
-        // 벽에 막혔는지 확인 (몬스터 본인에게 맞은 건 제외)
+        // 벽에 막혀 있는지 판단 (몬스터 자체에 맞은 건 제외)
         bool blocked = hasWallBetween && hit.transform != monster;
 
-        // 막혀있으면 강도 0으로
+        // 막혀 있으면 강도 0, 아니면 거리에 따라 계산
         float intensity = 0f;
         if (!blocked)
         {
@@ -256,10 +201,14 @@ public class MonsterNoise : MonoBehaviour
             intensity = Mathf.Clamp01(intensity);
         }
 
+        // 몬스터의 화면 좌표 계산 (0~1 범위의 뷰포트 좌표)
         Vector3 screenPos = cam.WorldToViewportPoint(monster.position);
+
+        // 몬스터가 카메라 뒤에 있으면 화면 밖으로 보냄
         if (screenPos.z < 0)
             screenPos = new Vector3(-9999, -9999, 0);
 
+        // 셰이더 파라미터 전달
         noiseMat.SetFloat("_Intensity", intensity);
         noiseMat.SetFloat("_NoiseType", noiseType);
         noiseMat.SetFloat("_GrainSize", grainSize);
@@ -268,10 +217,11 @@ public class MonsterNoise : MonoBehaviour
         noiseMat.SetFloat("_ClearSize", monsterClearSize);
         noiseMat.SetFloat("_EdgeSoftness", edgeSoftness);
 
+        // 노이즈 효과 적용해서 화면에 출력
         Graphics.Blit(src, dest, noiseMat);
     }
 
-    // 오브젝트 파괴될 때 머티리얼 메모리 정리
+    // 이 오브젝트가 파괴될 때 머티리얼 메모리 정리
     void OnDestroy()
     {
         if (noiseMat != null)
