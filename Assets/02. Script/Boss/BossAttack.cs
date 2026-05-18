@@ -103,11 +103,29 @@ public class BossAttack : MonoBehaviour
         // 공격 사운드 재생
         bossSound?.PlayAttackSound();
 
+        // BossData 의 attackHitDelay 만큼 딜레이 후 실제 데미지 적용
+        // 공격 모션의 타격 시점에 맞게 인스펙터에서 조절하세요
+        StartCoroutine(ApplyDamageAfterDelay(player, MonsterData.attackHitDelay));
+    }
+
+    // attackHitDelay 초 후에 데미지를 적용하는 코루틴
+    private System.Collections.IEnumerator ApplyDamageAfterDelay(Transform player, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+
+        // 딜레이 도중 플레이어가 사라졌으면 취소
+        if (player == null) yield break;
+
+        // 딜레이 도중 범위를 벗어났으면 취소
+        // 공격 모션 중에 플레이어가 뒤로 빠졌을 때 데미지가 들어가지 않도록 방지
+        float dist = Vector3.Distance(transform.position, player.position);
+        if (dist > MonsterData.meleeRange * 1.5f) yield break;
+
         PlayerStats playerStats = player.GetComponentInParent<PlayerStats>();
         if (playerStats != null)
         {
             playerStats.TakeDamage(MonsterData.meleeDamage);
-            Debug.Log($"[BossAttack] 근접 공격! 플레이어에게 {MonsterData.meleeDamage} 데미지!");
+            Debug.Log($"[BossAttack] 근접 공격 적중! 플레이어에게 {MonsterData.meleeDamage} 데미지!");
         }
     }
 
