@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 00de79604fa8c8d4b83a201af7a0769c
+guid: f67a81d15eeca0a4c803972203056a93
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 2100000
@@ -11,5 +11,5 @@ AssetOrigin:
   productId: 263303
   packageName: Table Set - Interior
   packageVersion: 1.0.0
-  assetPath: Assets/GeniusCrate_Games/Chair_sofa_set(interior)/Material/floor_mat.mat
+  assetPath: Assets/GeniusCrate_Games/Table_Set/Material/Table_Set/Table_04.mat
   uploadId: 616542
