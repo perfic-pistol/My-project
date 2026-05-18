@@ -1395,12 +1395,7 @@ MonoBehaviour:
   grainSize: 150
   monsterClearSize: 0.25
   edgeSoftness: 0.2
-  collisionDistance: 2
   noiseSound: {fileID: 8300000, guid: 1d8823d76080471469cd2d96862f9b12, type: 3}
-  uiObjects:
-  - {fileID: 787510792}
-  playerHandObjects:
-  - {fileID: 1517699449}
   noiseShaderRef: {fileID: 4800000, guid: 9432b5e5c49ddfb4aa649c491d9661e7, type: 3}
 --- !u!82 &141343975
 AudioSource:
@@ -9491,11 +9486,6 @@ Mesh:
       - serializedVersion: 1
         m_IndexStart: 0
         m_IndexCount: 0
---- !u!1 &787510792 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 1195374611263023442, guid: 8472a9cdac198684a9b2426ac2dd66c3, type: 3}
-  m_PrefabInstance: {fileID: 5797350}
-  m_PrefabAsset: {fileID: 0}
 --- !u!43 &797878407
 Mesh:
   m_ObjectHideFlags: 0
@@ -13773,7 +13763,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -32608,11 +32598,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 548844683}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1517699449 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 1195374610742088522, guid: 8472a9cdac198684a9b2426ac2dd66c3, type: 3}
-  m_PrefabInstance: {fileID: 5797350}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1529119235
 GameObject:
   m_ObjectHideFlags: 0
@@ -43950,7 +43935,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0

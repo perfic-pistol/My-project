@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: f566fdfd46398204a8e296c25cb263e0
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 9100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 328864
+  packageName: Eastern European Soldier
+  packageVersion: 1.0
+  assetPath: Assets/Modern Soldier/Demo/CTRL_Soldier_Demo.controller
+  uploadId: 808242
