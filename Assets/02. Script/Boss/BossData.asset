@@ -23,29 +23,29 @@ MonoBehaviour:
   patrolWanderRadius: 20
   patrolRepickDistance: 3
   loudSoundDetectionRange: 80
-  mediumSoundDetectionRange: 20
-  quietSoundDetectionRange: 8
+  mediumSoundDetectionRange: 30
+  quietSoundDetectionRange: 15
   soundCheckInterval: 0.2
+  loudClips:
+  - {fileID: 8300000, guid: ec5cd49f8987a494d96bf93339c8bfb3, type: 3}
+  mediumClips:
+  - {fileID: 8300000, guid: 79f7d2d95f0d3834e8145156aff5feee, type: 3}
+  - {fileID: 8300000, guid: 190ea7a3c99a6c64ba173c67ebd65a6a, type: 3}
+  - {fileID: 8300000, guid: 2be8dc59b006c0d448a743c523b5b9ad, type: 3}
+  - {fileID: 8300000, guid: 5b89821e23504434888537fadaccc6ae, type: 3}
+  quietClips:
+  - {fileID: 8300000, guid: 3b2fd8aa823253841a84bf5e637506fa, type: 3}
+  - {fileID: 8300000, guid: 72b076623538fe64187a0ef594b7af2a, type: 3}
+  - {fileID: 8300000, guid: 3c9f4a046c1e9ce43959149c2be7f0ba, type: 3}
+  - {fileID: 8300000, guid: 5e651a10a77c7bb48923cbcf8dd95375, type: 3}
   loudSoundObjectKeywords: []
   mediumSoundObjectKeywords: []
   quietSoundObjectKeywords:
   - Player
-  loudClipKeywords:
-  - Rifle_Fire_SFX
-  mediumClipKeywords:
-  - Rifle_Reload_SFX
-  - Jump_SFX
-  - Land_SFX
-  quietClipKeywords:
-  - StopCrouch_SFX
-  - StartCrouch_SFX
-  - wood_Footstep02
-  - wood_Footstep01
-  ignoredClipKeywords:
-  - AMB_S3_002
   searchRadius: 12
   searchTimeout: 25
   meleeRange: 2.5
   meleeDamage: 200
   attackCooldown: 1.5
+  attackHitDelay: 0.5
   attackLostTimeout: 6
