@@ -39,8 +39,8 @@ MonoBehaviour:
   chargeSpeed: 8
   chargeDuration: 3
   chargeDetectionRadius: 100
-  chargeAttackChance: 1
-  coverChance: 0
+  chargeAttackChance: 0
+  coverChance: 1
   spreadAngle: 3
   burst2Chance: 0.4
   burst3Chance: 0.35
