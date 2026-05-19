@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: b9f3086da92434da0bc1518f19f0ce86
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 277398
+  packageName: Insurgent (Urban)
+  packageVersion: 1.0
+  assetPath: Assets/ArtStore3D/Insurgent (Urban)/Settings/HDRPDefaultResources/HDRenderPipelineAsset.asset
+  uploadId: 644761

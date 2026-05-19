@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 879ffae44eefa4412bb327928f1a96dd
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 277398
+  packageName: Insurgent (Urban)
+  packageVersion: 1.0
+  assetPath: Assets/ArtStore3D/Insurgent (Urban)/Settings/HDRPDefaultResources/FoliageDiffusionProfile.asset
+  uploadId: 644761

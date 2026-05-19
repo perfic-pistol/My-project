@@ -1508,7 +1508,7 @@ MonoBehaviour:
   grainSize: 150
   monsterClearSize: 0.25
   edgeSoftness: 0.2
-  noiseSound: {fileID: 8300000, guid: 1d8823d76080471469cd2d96862f9b12, type: 3}
+  noiseSound: {fileID: 8300000, guid: 82a4867e5624b5a4cbc215cbc21b9e5d, type: 3}
   noiseShaderRef: {fileID: 0}
 --- !u!82 &141343970
 AudioSource:
@@ -19358,11 +19358,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6d470f126e4c287488d725d9f08acda0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossSound
-  mumbleSounds: []
+  mumbleSounds:
+  - {fileID: 8300000, guid: 61ebd57d25d7d144a8f469e426a1d867, type: 3}
   mumbleIntervalMin: 3
   mumbleIntervalMax: 7
-  mumbleVolume: 0.7
-  attackSounds: []
+  mumbleVolume: 1
+  attackSounds:
+  - {fileID: 8300000, guid: b76824f7a8d44a442b1dece82e039020, type: 3}
   attackVolume: 1
 --- !u!114 &1305938545
 MonoBehaviour:
