@@ -1,39 +1,9 @@
 fileFormatVersion: 2
-guid: 5f83aaf2159bece4b8e64f2adf5c47dc
-AssetOrigin:
-  serializedVersion: 1
-  productId: 277398
-  packageName: Insurgent (Urban)
-  packageVersion: 1.0
-  assetPath: Assets/ArtStore3D/Insurgent (Urban)/Model/Anim/Pose.fbx
-  uploadId: 644761
+guid: 34a37b0af551b284b9d76fd4752c15be
 ModelImporter:
   serializedVersion: 24200
-  internalIDToNameTable:
-  - first:
-      74: 1827226128182048838
-    second: Idle_Pose
-  externalObjects:
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: UrbanTerrorist_Access_Mat
-    second: {fileID: 2100000, guid: 6042dd578efd5db46ac3cc9af8d614d3, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: UrbanTerrorist_Cloth_Mat
-    second: {fileID: 2100000, guid: 6cd8d049cf210c24bbe4f589e64ff75a, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: UrbanTerrorist_Lens_Mat
-    second: {fileID: 2100000, guid: 0db9e19f3b265e044a6a78542d35d095, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: UrbanTerrorist_Skin_Mat
-    second: {fileID: 2100000, guid: a5fc10afe2bd0fe45916089be5527972, type: 2}
+  internalIDToNameTable: []
+  externalObjects: {}
   materials:
     materialImportMode: 2
     materialName: 0
@@ -44,7 +14,7 @@ ModelImporter:
     bakeSimulation: 0
     resampleCurves: 1
     optimizeGameObjects: 0
-    removeConstantScaleCurves: 1
+    removeConstantScaleCurves: 0
     motionNodeName: 
     animationImportErrors: 
     animationImportWarnings: 
@@ -59,36 +29,7 @@ ModelImporter:
     animationWrapMode: 0
     extraExposedTransformPaths: []
     extraUserProperties: []
-    clipAnimations:
-    - serializedVersion: 16
-      name: Idle_Pose
-      takeName: Take 001
-      internalID: 0
-      firstFrame: 1
-      lastFrame: 150
-      wrapMode: 0
-      orientationOffsetY: 0
-      level: 0
-      cycleOffset: 0
-      loop: 0
-      hasAdditiveReferencePose: 0
-      loopTime: 1
-      loopBlend: 0
-      loopBlendOrientation: 0
-      loopBlendPositionY: 0
-      loopBlendPositionXZ: 0
-      keepOriginalOrientation: 0
-      keepOriginalPositionY: 1
-      keepOriginalPositionXZ: 0
-      heightFromFeet: 0
-      mirror: 0
-      bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
-      curves: []
-      events: []
-      transformMask: []
-      maskType: 3
-      maskSource: {instanceID: 0}
-      additiveReferencePoseFrame: 1
+    clipAnimations: []
     isReadable: 0
   meshes:
     lODScreenPercentages: []
@@ -153,7 +94,7 @@ ModelImporter:
     globalScale: 1
     rootMotionBoneName: 
     hasTranslationDoF: 0
-    hasExtraRoot: 0
+    hasExtraRoot: 1
     skeletonHasParents: 1
   lastHumanDescriptionAvatarSource: {instanceID: 0}
   autoGenerateAvatarMappingIfUnspecified: 1
@@ -161,8 +102,8 @@ ModelImporter:
   humanoidOversampling: 1
   avatarSetup: 1
   addHumanoidExtraRootOnlyWhenUsingAvatar: 1
-  importBlendShapeDeformPercent: 0
-  remapMaterialsIfMaterialImportModeIsNone: 1
+  importBlendShapeDeformPercent: 1
+  remapMaterialsIfMaterialImportModeIsNone: 0
   additionalBone: 0
   userData: 
   assetBundleName: 

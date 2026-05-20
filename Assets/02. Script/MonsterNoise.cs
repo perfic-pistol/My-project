@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-// 카메라와 오디오소스 컴포넌트가 반드시 필요함
+// 카메라와 오디오소스 컴포넌트가 반드시 두 개 필요함
 [RequireComponent(typeof(Camera))]
 [RequireComponent(typeof(AudioSource))]
 public class MonsterNoise : MonoBehaviour
@@ -33,8 +33,18 @@ public class MonsterNoise : MonoBehaviour
     public float edgeSoftness = 0.2f;
 
     [Header("사운드 설정")]
-    // 노이즈 효과 중 재생될 사운드 파일을 연결하세요
-    public AudioClip noiseSound;
+    // 처음 한 번만 재생될 사운드 파일을 연결하세요 (인트로 사운드)
+    public AudioClip introSound;
+    // 인트로 사운드가 끝난 후 반복 재생될 사운드 파일을 연결하세요 (루프 사운드)
+    public AudioClip loopSound;
+
+    [Header("볼륨 조절")]
+    // 범위 안에 막 들어왔을 때 (startDistance 지점)의 볼륨. 0이면 무음, 1이면 최대
+    [Range(0f, 1f)]
+    public float minVolume = 0f;
+    // 가장 가까이 붙었을 때 (maxNoiseDistance 지점)의 볼륨. 0이면 무음, 1이면 최대
+    [Range(0f, 1f)]
+    public float maxVolume = 1f;
 
     [Header("셰이더 설정")]
     // NoiseShader1 파일을 인스펙터에서 직접 드래그해서 연결하세요
@@ -46,8 +56,17 @@ public class MonsterNoise : MonoBehaviour
     // 노이즈 화면 효과에 사용될 머티리얼
     Material noiseMat;
 
-    // 오디오소스 컴포넌트 참조
-    AudioSource audioSource;
+    // 인트로 사운드를 재생하는 오디오소스 (처음 한 번만 재생)
+    AudioSource introAudioSource;
+
+    // 루프 사운드를 재생하는 오디오소스 (반복 재생)
+    AudioSource loopAudioSource;
+
+    // 인트로 사운드가 이미 재생되었는지 여부 (중복 재생 방지)
+    bool introPlayed = false;
+
+    // 인트로가 끝난 후 루프로 넘어가는 코루틴이 실행 중인지 여부 (중복 실행 방지)
+    bool isWaitingForIntroEnd = false;
 
     // 벽에 가려져 있는지 여부 캐싱 (매 프레임 레이캐스트 방지용)
     bool isBlocked = false;
@@ -69,11 +88,17 @@ public class MonsterNoise : MonoBehaviour
         // 노이즈 머티리얼 초기화
         InitMaterial();
 
-        // 오디오소스 초기 설정
-        audioSource = GetComponent<AudioSource>();
-        audioSource.clip = noiseSound;
-        audioSource.loop = true;
-        audioSource.playOnAwake = false;
+        // 오브젝트에 붙어있는 첫 번째 오디오소스를 인트로용으로 사용
+        introAudioSource = GetComponent<AudioSource>();
+        introAudioSource.clip = introSound;
+        introAudioSource.loop = false;         // 인트로는 반복 없이 한 번만 재생
+        introAudioSource.playOnAwake = false;
+
+        // 루프용 오디오소스는 새로 추가해서 사용
+        loopAudioSource = gameObject.AddComponent<AudioSource>();
+        loopAudioSource.clip = loopSound;
+        loopAudioSource.loop = true;           // 루프 사운드는 반복 재생
+        loopAudioSource.playOnAwake = false;
     }
 
     // 노이즈 셰이더 머티리얼 초기화 함수
@@ -111,33 +136,49 @@ public class MonsterNoise : MonoBehaviour
         // 몬스터와의 현재 거리 계산
         float dist = Vector3.Distance(transform.position, monster.position);
 
-        // 벽에 막히지 않았을 때만 사운드 재생
-        if (!isBlocked)
+        // 거리에 따라 노이즈 강도 계산 (0~1 사이 값)
+        float intensity = 1f - Mathf.InverseLerp(maxNoiseDistance, startDistance, dist);
+        intensity = Mathf.Clamp01(intensity);
+
+        // 벽에 막히지 않았고 강도가 있을 때만 사운드 처리
+        if (!isBlocked && intensity > 0.01f)
         {
-            // 거리에 따라 노이즈 강도 계산 (0~1 사이 값)
-            float intensity = 1f - Mathf.InverseLerp(maxNoiseDistance, startDistance, dist);
-            intensity = Mathf.Clamp01(intensity);
+            // 거리에 따라 볼륨 계산 (minVolume ~ maxVolume 사이에서 부드럽게 변함)
+            float currentVolume = Mathf.Lerp(minVolume, maxVolume, intensity);
 
-            // 강도가 있으면 사운드 재생, 없으면 정지
-            if (intensity > 0.01f)
-            {
-                if (!audioSource.isPlaying && noiseSound != null)
-                    audioSource.Play();
+            // 현재 재생 중인 사운드의 볼륨을 실시간으로 업데이트
+            introAudioSource.volume = currentVolume;
+            loopAudioSource.volume = currentVolume;
 
-                // 볼륨은 항상 최대로 고정
-                audioSource.volume = 1f;
-            }
-            else
+            // 인트로 사운드가 아직 한 번도 재생되지 않았을 때만 재생 시작
+            if (!introPlayed)
             {
-                if (audioSource.isPlaying)
-                    audioSource.Stop();
+                introPlayed = true;
+
+                // 인트로 사운드 파일이 연결되어 있으면 재생
+                if (introSound != null)
+                {
+                    introAudioSource.Play();
+
+                    // 인트로가 끝나면 루프 사운드로 넘어가는 코루틴 시작
+                    // 이미 실행 중이 아닐 때만 시작해서 중복 방지
+                    if (!isWaitingForIntroEnd)
+                    {
+                        isWaitingForIntroEnd = true;
+                        StartCoroutine(PlayLoopAfterIntro());
+                    }
+                }
+                else
+                {
+                    // 인트로 사운드가 없으면 곧바로 루프 사운드만 재생
+                    StartLoopSound();
+                }
             }
         }
         else
         {
-            // 벽에 막혀 있으면 사운드 정지
-            if (audioSource.isPlaying)
-                audioSource.Stop();
+            // 벽에 막혔거나 범위 밖이면 모든 사운드 정지하고 상태 초기화
+            StopAllSounds();
         }
 
         // 타이머 누적
@@ -159,6 +200,55 @@ public class MonsterNoise : MonoBehaviour
 
         // 레이캐스트에 뭔가 맞았고 그게 몬스터가 아니라면 벽으로 판단
         isBlocked = hasWall && hit.transform != monster;
+    }
+
+    // 인트로 사운드가 끝날 때까지 기다렸다가 루프 사운드를 재생하는 코루틴
+    IEnumerator PlayLoopAfterIntro()
+    {
+        // 인트로 사운드의 길이만큼 기다림
+        // introSound가 없으면 0초 대기 후 바로 진행 (안전 처리)
+        float waitTime = (introSound != null) ? introSound.length : 0f;
+        yield return new WaitForSeconds(waitTime);
+
+        // 코루틴 실행 플래그 해제
+        isWaitingForIntroEnd = false;
+
+        // 인트로가 끝난 뒤 아직 범위 안에 있고 벽에 막히지 않은 경우에만 루프 재생
+        if (introPlayed && !isBlocked)
+        {
+            StartLoopSound();
+        }
+    }
+
+    // 루프 사운드를 시작하는 함수 (중복 재생 방지 포함)
+    void StartLoopSound()
+    {
+        if (loopSound == null) return;
+
+        // 이미 재생 중이 아닐 때만 시작
+        if (!loopAudioSource.isPlaying)
+        {
+            loopAudioSource.Play();
+        }
+    }
+
+    // 모든 사운드를 정지하고 재생 상태를 초기화하는 함수
+    void StopAllSounds()
+    {
+        // 인트로 사운드 정지
+        if (introAudioSource.isPlaying)
+            introAudioSource.Stop();
+
+        // 루프 사운드 정지
+        if (loopAudioSource.isPlaying)
+            loopAudioSource.Stop();
+
+        // 재생 기록 초기화 (다시 범위에 들어오면 처음부터 재생되도록)
+        introPlayed = false;
+        isWaitingForIntroEnd = false;
+
+        // 실행 중인 코루틴 전부 정지 (인트로 대기 코루틴 포함)
+        StopAllCoroutines();
     }
 
     // 카메라 렌더링이 끝난 후 화면에 노이즈 효과를 덧씌우는 함수
@@ -224,6 +314,9 @@ public class MonsterNoise : MonoBehaviour
     // 이 오브젝트가 파괴될 때 머티리얼 메모리 정리
     void OnDestroy()
     {
+        // 실행 중인 코루틴 정리
+        StopAllCoroutines();
+
         if (noiseMat != null)
             DestroyImmediate(noiseMat);
     }
