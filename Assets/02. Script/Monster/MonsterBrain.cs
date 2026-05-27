@@ -183,9 +183,19 @@ public class MonsterBrain : MonoBehaviour
 
     // 엄폐 전용 파라미터 (Animator 창에서 이름 정확히 일치해야 함)
     // IsCrouching  : Bool  - 엄폐 위치에 앉아있는 상태인지
-    // CrouchAttack : Trigger - 앉은 채로 사격할 때 트리거
+    // CrouchAttack : Trigger - 앉은 채로 사격할 때 트리거 (현재 미사용, IsStandingFire 방식으로 대체)
     private static readonly int AnimIsCrouching = Animator.StringToHash("IsCrouching");
     private static readonly int AnimCrouchAttack = Animator.StringToHash("CrouchAttack");
+
+    // 엄폐 중 사격을 위해 일어서는 상태 파라미터
+    // true: 사격 직전 일어서기 -> Animator 에서 Cover_StandFire 상태로 전환
+    // false: 사격 완료 후 다시 앉기 -> Animator 에서 Crouch_Idle 로 복귀
+    private static readonly int AnimIsStandingFire = Animator.StringToHash("IsStandingFire");
+
+    // 엄폐 사격 흐름 추적 플래그
+    // false: 앉아서 대기 중 (사격 준비)
+    // true: 일어서서 사격 중 (사격 완료 후 false 로 전환하면서 앉기)
+    private bool coverStandFireActive = false;
 
     // IsMoving 강제 차단 플래그
     // 조준/사격/돌진 사격 페이즈처럼 몬스터가 멈춰야 하는 상황에서
@@ -351,6 +361,7 @@ public class MonsterBrain : MonoBehaviour
         isAtCover = false;
 
         coverCheckTimer = 0f;
+        coverStandFireActive = false;
 
         patrol.StopPatrol();
         navAgent.isStopped = false;
@@ -360,12 +371,8 @@ public class MonsterBrain : MonoBehaviour
 
         if (monsterAnimator != null)
         {
-            // IsCrouching=false 로 일어서기
             monsterAnimator.SetBool(AnimIsCrouching, false);
-            // IsMoving=true 를 강제로 설정
-            // NavMeshAgent 가 실제로 움직이기까지 한 프레임 딜레이가 있어서
-            // 그 사이에 IsCrouching=false + IsMoving=false 조건으로
-            // Crouch_Idle -> Alert_Idle 로 빠지는 것을 방지
+            monsterAnimator.SetBool(AnimIsStandingFire, false);
             monsterAnimator.SetBool(AnimIsMoving, true);
         }
 
@@ -584,12 +591,18 @@ public class MonsterBrain : MonoBehaviour
                 isAtCover = true;
                 navAgent.isStopped = true;
                 aimStartTime = Time.time;
+                coverStandFireActive = false;
 
                 suppressMovingAnim = true;
-                SetAnimatorCrouch(true);
-                Debug.Log($"[{gameObject.name}] 엄폐 도착. 앉아서 사격 시작");
+
+                // 앉기 + IsStandingFire 초기화
+                if (monsterAnimator != null)
+                {
+                    monsterAnimator.SetBool(AnimIsCrouching, true);
+                    monsterAnimator.SetBool(AnimIsStandingFire, false);
+                }
+                Debug.Log($"[{gameObject.name}] 엄폐 도착. 사격 대기 시작");
             }
-            // 아직 이동 중이면 다음 프레임에 다시 확인
             return;
         }
 
@@ -639,18 +652,45 @@ public class MonsterBrain : MonoBehaviour
             }
         }
 
-        // ── 2~4단계: 앉은 채로 반복 사격 ─────────────────────────────────
+        // ── 2~4단계: 앉아서 대기 -> 일어서서 사격 -> 다시 앉기 반복 ─────────
 
+        // 플레이어 방향으로 회전
         RotateTowardsTarget(combatTarget);
+
+        // 사격 쿨타임 대기 중 (앉아서 대기)
+        if (Time.time - lastAttackTime < data.attackCooldown)
+        {
+            // 쿨타임 중에는 앉아있는 상태 유지
+            if (coverStandFireActive)
+            {
+                coverStandFireActive = false;
+                if (monsterAnimator != null)
+                    monsterAnimator.SetBool(AnimIsStandingFire, false);
+            }
+            return;
+        }
+
+        // 조준 시간 대기 (일어서서 조준 중)
+        // 아직 일어서지 않았으면 지금 일어서기
+        if (!coverStandFireActive)
+        {
+            coverStandFireActive = true;
+            aimStartTime = Time.time;
+            if (monsterAnimator != null)
+                monsterAnimator.SetBool(AnimIsStandingFire, true);
+        }
 
         float elapsed = Time.time - aimStartTime;
         if (elapsed < data.aimDuration) return;
 
-        if (Time.time - lastAttackTime < data.attackCooldown) return;
-
+        // 조준 완료 -> 사격 실행
         ExecuteCrouchAttack(combatTarget);
         lastAttackTime = Time.time;
-        aimStartTime = Time.time;
+
+        // 사격 후 다시 앉기
+        coverStandFireActive = false;
+        if (monsterAnimator != null)
+            monsterAnimator.SetBool(AnimIsStandingFire, false);
     }
 
     // 현재 엄폐 위치에서 플레이어 사이에 가구가 여전히 막고 있는지 확인
@@ -676,7 +716,14 @@ public class MonsterBrain : MonoBehaviour
     // 엄폐 완전 해제 후 Alert 전환 헬퍼
     private void ExitCoverToAlert()
     {
-        EnterAlertFromCover();
+        coverStandFireActive = false;
+        if (monsterAnimator != null)
+        {
+            monsterAnimator.SetBool(AnimIsStandingFire, false);
+            monsterAnimator.SetBool(AnimIsCrouching, false);
+            monsterAnimator.SetBool(AnimIsAiming, false);
+        }
+        EnterAlert();
     }
 
     // =====================================================================
@@ -805,13 +852,11 @@ public class MonsterBrain : MonoBehaviour
         StartCoroutine(BurstFireCoroutine(target, burstCount));
     }
 
-    // 앉아서 사격 (Combat_Cover 에서 사용)
-    // Animator 의 CrouchAttack 트리거를 발동 -> 앉아서 쏘는 애니메이션 재생
+    // 엄폐 사격 (Combat_Cover 에서 사용)
+    // IsStandingFire = true 로 Cover_StandFire 애니메이션이 재생되는 동안 실탄 처리
+    // CrouchAttack 트리거 불필요 - IsStandingFire Bool 로만 애니메이션 제어
     private void ExecuteCrouchAttack(Transform target)
     {
-        if (monsterAnimator != null)
-            monsterAnimator.SetTrigger(AnimCrouchAttack);
-
         float roll = Random.value;
         int burstCount;
         if (roll < data.burst2Chance)
