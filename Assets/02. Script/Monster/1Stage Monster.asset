@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: 1Stage Monster
   m_EditorClassIdentifier: Assembly-CSharp::MonsterData
   monsterName: Monster
-  maxHealth: 100
+  maxHealth: 1
   patrolSpeed: 2
   chaseSpeed: 4
   waypointReachDistance: 0.5

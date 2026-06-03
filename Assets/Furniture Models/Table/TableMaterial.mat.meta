@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 82282f4b464fb604c893f69d7c25fe84
+timeCreated: 1455976539
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 56628
+  packageName: Small Pack Furniture
+  packageVersion: 1.0
+  assetPath: Assets/Furniture Models/Table/TableMaterial.mat
+  uploadId: 104125

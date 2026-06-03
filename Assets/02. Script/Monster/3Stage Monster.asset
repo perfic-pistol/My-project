@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: 3Stage Monster
   m_EditorClassIdentifier: Assembly-CSharp::MonsterData
   monsterName: Monster
-  maxHealth: 100
+  maxHealth: 1
   patrolSpeed: 2
   chaseSpeed: 4
   waypointReachDistance: 0.5
@@ -52,7 +52,8 @@ MonoBehaviour:
   playHitSound: 1
   dropItemOnDeath: 1
   dropItemPrefabs:
-  - {fileID: 1950985239777222504, guid: 7f74e56fd61047940ae069e53878923f, type: 3}
+  - {fileID: 3019568617730713240, guid: 5dd5a1ab6047d4848b7668734815016f, type: 3}
+  - {fileID: 6202248377633566000, guid: 609cad5eb478dd849beaf2705286bdf7, type: 3}
   dropCount: 1
   dropChance: 1
   dropSpawnHeight: 0.5

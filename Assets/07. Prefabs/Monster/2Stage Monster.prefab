@@ -387,7 +387,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5484800057933074051, guid: 11ccefd033eaf7945856bf0626ea678e, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 5484800057933074051, guid: 11ccefd033eaf7945856bf0626ea678e, type: 3}
       propertyPath: m_LocalRotation.y
@@ -599,7 +599,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MonsterHealth
   data: {fileID: 11400000, guid: 6826d0864418f764e87faf879fca914f, type: 2}
   destroyOnDie: 1
-  destroyDelay: 5
+  destroyDelay: 0
   deathEffect: {fileID: 0}
   hitBloodEffect: {fileID: 1181454954656085212, guid: f3d20abe831d1d34ba186719eb2edd17, type: 3}
   hitEffectLifetime: 1

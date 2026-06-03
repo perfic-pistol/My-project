@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 765a305b13ce76e45ad9ed3d66ce2c30
+timeCreated: 1455985199
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 56628
+  packageName: Small Pack Furniture
+  packageVersion: 1.0
+  assetPath: Assets/Furniture Models/Coffee Table/CoffeTableMaterial.mat
+  uploadId: 104125

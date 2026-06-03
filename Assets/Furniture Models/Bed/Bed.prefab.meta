@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: df8a43a449ce3144d9403e53eb63c158
+timeCreated: 1456047244
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 56628
+  packageName: Small Pack Furniture
+  packageVersion: 1.0
+  assetPath: Assets/Furniture Models/Bed/Bed.prefab
+  uploadId: 104125

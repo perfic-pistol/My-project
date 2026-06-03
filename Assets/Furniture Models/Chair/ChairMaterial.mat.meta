@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 50d5fab83da9a54478bd20bb28df67e6
+timeCreated: 1455973170
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 56628
+  packageName: Small Pack Furniture
+  packageVersion: 1.0
+  assetPath: Assets/Furniture Models/Chair/ChairMaterial.mat
+  uploadId: 104125

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 73479dfe2d06f8442bdee248da7d39f1
+timeCreated: 1456045359
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 56628
+  packageName: Small Pack Furniture
+  packageVersion: 1.0
+  assetPath: Assets/Furniture Models/Bed/BedMaterial.mat
+  uploadId: 104125
