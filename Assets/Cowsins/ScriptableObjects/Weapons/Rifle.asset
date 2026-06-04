@@ -168,7 +168,7 @@ MonoBehaviour:
   applyDifferentRecoilOnAiming: 1
   xRecoilAmountOnAiming: 20
   yRecoilAmountOnAiming: 2
-  damagePerBullet: 2.8
+  damagePerBullet: 5
   applyDamageReductionBasedOnDistance: 0
   minimumDistanceToApplyDamageReduction: 0
   damageReductionMultiplier: 0
