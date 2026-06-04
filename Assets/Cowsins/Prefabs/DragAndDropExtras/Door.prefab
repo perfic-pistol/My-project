@@ -137,7 +137,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d683c5ccfb0c4274695ec1b537855e26, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  uniqueID: 2bc8e959-5905-4ab6-8bd6-655abb175f90
+  uniqueID: cd2c8c6b-3fed-4c4e-97b5-edf7d7d5a07a
   interactable: 0
   interactText: Must be null for this example
   instantInteraction: 0
@@ -153,8 +153,8 @@ MonoBehaviour:
   offsetPosition: {x: 0, y: 0, z: 0}
   openedDoorRotation: 75
   speed: 2
-  openDoorSFX: {fileID: 8300000, guid: b52044b26fc917247b6fd1eb828e7f88, type: 3}
-  closeDoorSFX: {fileID: 8300000, guid: b52044b26fc917247b6fd1eb828e7f88, type: 3}
+  openDoorSFX: {fileID: 8300000, guid: 17e5bf9a33e112e49b11a523fc8c9dcc, type: 3}
+  closeDoorSFX: {fileID: 8300000, guid: 17e5bf9a33e112e49b11a523fc8c9dcc, type: 3}
   lockedDoorSFX: {fileID: 8300000, guid: e051356206d09d748bda6a912f7a8f2c, type: 3}
 --- !u!65 &8014784134708351463
 BoxCollider:

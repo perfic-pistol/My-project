@@ -68,6 +68,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CollectibleItem
   playerTag: Player
+  collectSound: {fileID: 8300000, guid: 3288bd21e49ccb544b2709e0b7c67dab, type: 3}
+  volume: 1
 --- !u!1001 &8706509021001266060
 PrefabInstance:
   m_ObjectHideFlags: 0
