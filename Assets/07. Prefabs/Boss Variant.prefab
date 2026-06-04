@@ -269,10 +269,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossSound
   mumbleSounds:
-  - {fileID: 8300000, guid: 61ebd57d25d7d144a8f469e426a1d867, type: 3}
+  - {fileID: 8300000, guid: 6dfd271d31d3ab341b15088c03a0b283, type: 3}
   mumbleIntervalMin: 3
   mumbleIntervalMax: 7
-  mumbleVolume: 1
+  mumbleVolume: 0.3
   attackSounds:
   - {fileID: 8300000, guid: b76824f7a8d44a442b1dece82e039020, type: 3}
   attackVolume: 1
