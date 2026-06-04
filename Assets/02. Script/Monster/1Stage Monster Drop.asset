@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: acc3772c8ab54d941a23d2c34377cc25, type: 3}
-  m_Name: 1Stage Monster
+  m_Name: 1Stage Monster Drop
   m_EditorClassIdentifier: Assembly-CSharp::MonsterData
   monsterName: Monster
   maxHealth: 75
@@ -50,7 +50,7 @@ MonoBehaviour:
   fireSoundVolume: 1
   showBloodEffect: 0
   playHitSound: 0
-  dropItemOnDeath: 0
+  dropItemOnDeath: 1
   dropItemPrefabs:
   - {fileID: 3019568617730713240, guid: 5dd5a1ab6047d4848b7668734815016f, type: 3}
   - {fileID: 6202248377633566000, guid: 609cad5eb478dd849beaf2705286bdf7, type: 3}
